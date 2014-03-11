@@ -1,8 +1,8 @@
 (function() {
     'use strict';
 
-    angular.module('angular-scrollify', []).directive('ngScrollify', ['$log', '$window', '$document',
-        function($log, $window, $document) {
+    angular.module('angular-scrollify', []).directive('ngScrollify', ['$log', '$window', '$document', '$timeout',
+        function($log, $window, $document, $timeout) {
             return {
                 restrict: 'A',
                 transclude: true,
@@ -21,7 +21,10 @@
                         valueIdentifier = match[1];
                         listIdentifier = match[2];
 
-                        var defaults = {};
+                        var defaults = {
+                            scrollSpeed: 200,
+                            scrollBarMod: 50,
+                        };
 
                         if (attr.ngCarouselOptions !== undefined) {
                             angular.extend(defaults, scope.$eval(attr.ngCarouselOptions));
@@ -63,16 +66,31 @@
                             }
                         }
 
+                        var scrollSpeed = 0;
+                        var preventScroll = false;
+
                         var currentPane = 0;
 
-                        var hamster = new Hamster(element[0]).wheel(function(event, delta, deltaX, deltaY) {
+                        var hamster = new Hamster(element[0]).wheel(function(e, delta, deltaX, deltaY) {
                             currentPane -= deltaY;
 
                             currentPane = currentPane < 0 ? 0 : currentPane;
                             currentPane = currentPane > scope[listIdentifier].length - 1 ? scope[listIdentifier].length - 1 : currentPane;
 
-                            moveWrapper(200);
+                            scrollToCurrent();
+
+                            e.preventDefault();
                         });
+
+                        var scrollToCurrent = function() {
+                            $window.scrollTo(0, (($document[0].documentElement.scrollHeight - $window.innerHeight) / (scope[listIdentifier].length - 1)) * currentPane);
+                        };
+
+                        var setContainerHeight = function() {
+                            _element.css('height', (scope[listIdentifier].length * defaults.scrollBarMod) + '%');
+                        };
+
+                        setContainerHeight();
 
                         var wrapperY = 0;
 
@@ -83,32 +101,61 @@
                             wrapper[0].style[Modernizr.prefixed('transitionDuration')] = transDuration + 'ms';
                         };
 
+                        function scroll(e) {
+                            if (!preventScroll) {
+                                currentPane = Math.round((scope[listIdentifier].length - 1) * ($window.scrollY / ($document[0].documentElement.scrollHeight - $window.innerHeight)));
+
+                                moveWrapper(scrollSpeed);
+                            }
+                        }
+
                         function keyDown(e) {
                             switch (e.keyCode) {
                                 case 40:
                                     currentPane = currentPane < scope[listIdentifier].length - 1 ? currentPane + 1 : scope[listIdentifier].length - 1;
-                                    moveWrapper(200);
+                                    scrollToCurrent();
+                                    e.preventDefault();
                                     break;
                                 case 38:
                                     currentPane = currentPane > 0 ? currentPane - 1 : currentPane;
-                                    moveWrapper(200);
+                                    scrollToCurrent();
+                                    e.preventDefault();
                                     break;
                             }
                         }
 
+                        var resetTimeout;
+
                         var resize = function(e) {
+                            preventScroll = true;
+
+                            setContainerHeight();
+
+                            scrollToCurrent();
+
                             moveWrapper(0);
+
+                            $timeout.cancel(resetTimeout);
+                            resetTimeout = $timeout(function() {
+                                preventScroll = false;
+                            }, scrollSpeed);
                         };
 
                         var resizeEvent = 'onorientationchange' in $window ? 'orientationchange' : 'resize';
 
                         angular.element($window).on(resizeEvent, resize);
+                        angular.element($window).on('scroll', scroll);
                         $document.on('keydown', keyDown);
 
                         scope.$on('$destroy', function() {
                             angular.element($window).off(resizeEvent, resize);
+                            angular.element($window).off('scroll', scroll);
                             $document.off('keydown', keyDown);
                         });
+
+                        $timeout(function() {
+                            scrollSpeed = defaults.scrollSpeed;
+                        }, defaults.scrollSpeed);
 
                     };
                 }
