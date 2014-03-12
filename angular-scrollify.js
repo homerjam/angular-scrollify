@@ -1,8 +1,24 @@
 (function() {
     'use strict';
 
-    angular.module('angular-scrollify', []).directive('ngScrollify', ['$log', '$window', '$document', '$timeout',
-        function($log, $window, $document, $timeout) {
+    angular.module('angular-throttle', [])
+        .factory('throttle', [
+            function() {
+                var last = +new Date();
+
+                return function(fn, delay) {
+                    var now = +new Date();
+
+                    if (now - last >= delay) {
+                        last = now;
+                        fn();
+                    }
+                };
+            }
+        ]);
+
+    angular.module('angular-scrollify', ['angular-throttle']).directive('ngScrollify', ['$log', '$window', '$document', '$timeout', 'throttle',
+        function($log, $window, $document, $timeout, throttle) {
             return {
                 restrict: 'A',
                 transclude: true,
@@ -23,7 +39,9 @@
 
                         var defaults = {
                             scrollSpeed: 200,
-                            scrollBarMod: 50,
+                            scrollBarMod: 100,
+                            wheelMaxRate: 20,
+                            scrollMaxRate: 50
                         };
 
                         if (attr.ngCarouselOptions !== undefined) {
@@ -46,73 +64,138 @@
                             });
                         }
 
-                        var panes = [];
+                        var panes = [],
+                            preventScroll = false,
+                            currentPane = 0,
+                            prevPane = false;
 
-                        for (var i = 0; i < scope[listIdentifier].length; i++) {
-                            var pane = {};
-                            pane.scope = scope.$new();
-                            panes.push(pane);
+                        var init = function() {
+                            for (var i = 0; i < list.length; i++) {
+                                var pane = {};
+                                pane.scope = scope.$new();
+                                panes.push(pane);
 
-                            _linker(pane);
+                                _linker(pane);
 
-                            angular.element(pane.element).attr('data-index', i);
-                        }
-
-                        for (i = 0; i < scope[listIdentifier].length; i++) {
-                            panes[i].scope[valueIdentifier] = scope[listIdentifier][i];
-
-                            if (!panes[i].scope.$$phase) {
-                                panes[i].scope.$apply();
+                                angular.element(pane.element).attr('data-index', i);
                             }
-                        }
 
-                        var scrollSpeed = 0;
-                        var preventScroll = false;
+                            for (i = 0; i < list.length; i++) {
+                                panes[i].scope[valueIdentifier] = list[i];
 
-                        var currentPane = 0;
+                                if (!panes[i].scope.$$phase) {
+                                    panes[i].scope.$apply();
+                                }
+                            }
+
+                            setContainerHeight();
+
+                            setCurrentPane();
+
+                            moveWrapper(0);
+                        };
+
+                        var list = [];
+
+                        scope.$watch(listIdentifier, function(n) {
+                            if (n !== undefined) {
+                                list = n;
+
+                                init();
+                            }
+                        });
+
+                        var wheelTimeout,
+                            deltaCount = 0,
+                            jumpCount = 0;
 
                         var hamster = new Hamster(element[0]).wheel(function(e, delta, deltaX, deltaY) {
-                            currentPane -= deltaY;
+                            var normalisedDelta = normaliseDelta(e.detail, e.wheelDelta);
 
-                            currentPane = currentPane < 0 ? 0 : currentPane;
-                            currentPane = currentPane > scope[listIdentifier].length - 1 ? scope[listIdentifier].length - 1 : currentPane;
+                            if (deltaY !== 0) {
+                                deltaCount += normalisedDelta;
 
-                            scrollToCurrent();
+                                if (Math.abs(0 - deltaCount) >= 1) {
+                                    deltaCount = 0;
+
+                                    jumpCount -= (deltaY > 0 ? 1 : -1);
+
+                                    $timeout.cancel(wheelTimeout);
+                                    wheelTimeout = $timeout(function() {
+                                        prevPane = currentPane;
+
+                                        currentPane += jumpCount;
+
+                                        jumpCount = 0;
+
+                                        scrollToCurrent();
+                                    }, defaults.wheelMaxRate);
+                                }
+                            }
 
                             e.preventDefault();
                         });
 
+                        // http://stackoverflow.com/a/13650579/1050862
+                        var normaliseDelta = function(detail, wheelDelta) {
+                            var d = detail,
+                                w = wheelDelta,
+                                n = 225,
+                                n1 = n - 1;
+
+                            // Normalize delta
+                            d = d ? w && (f = w / d) ? d / f : -d / 1.35 : w / 120;
+
+                            // Quadratic scale if |d| > 1
+                            d = d < 1 ? d < -1 ? (-Math.pow(d, 2) - n1) / n : d : (Math.pow(d, 2) + n1) / n;
+
+                            // Delta *should* not be greater than 2...
+                            return (Math.min(Math.max(d / 2, -1), 1)) * 2;
+                        };
+
+                        var setCurrentPane = function() {
+                            currentPane = Math.round((list.length - 1) * ($window.scrollY / ($document[0].documentElement.scrollHeight - $window.innerHeight)));
+                        };
+
                         var scrollToCurrent = function() {
-                            $window.scrollTo(0, (($document[0].documentElement.scrollHeight - $window.innerHeight) / (scope[listIdentifier].length - 1)) * currentPane);
+                            $window.scrollTo(0, (($document[0].documentElement.scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
                         };
 
                         var setContainerHeight = function() {
-                            _element.css('height', (scope[listIdentifier].length * defaults.scrollBarMod) + '%');
+                            _element.css('height', (list.length * defaults.scrollBarMod) + '%');
                         };
-
-                        setContainerHeight();
-
-                        var wrapperY = 0;
 
                         var moveWrapper = function(transDuration) {
                             transDuration = transDuration || 0;
-                            wrapperY = -(currentPane * container[0].clientHeight);
+                            var wrapperY = -(currentPane * container[0].clientHeight);
                             wrapper[0].style[Modernizr.prefixed('transform')] = 'translate(0, ' + wrapperY + 'px)';
                             wrapper[0].style[Modernizr.prefixed('transitionDuration')] = transDuration + 'ms';
                         };
 
-                        function scroll(e) {
-                            if (!preventScroll) {
-                                currentPane = Math.round((scope[listIdentifier].length - 1) * ($window.scrollY / ($document[0].documentElement.scrollHeight - $window.innerHeight)));
+                        var scrollTimeout;
 
-                                moveWrapper(scrollSpeed);
+                        function scroll(e) {
+                            $timeout.cancel(scrollTimeout);
+
+                            if (!preventScroll) {
+                                scrollTimeout = $timeout(function() {
+                                    if (prevPane === false) {
+                                        prevPane = currentPane;
+                                    }
+
+                                    setCurrentPane();
+
+                                    moveWrapper(Math.max(1, Math.abs(prevPane - currentPane)) * defaults.scrollSpeed);
+
+                                    prevPane = false;
+                                }, defaults.scrollMaxRate);
                             }
                         }
 
                         function keyDown(e) {
                             switch (e.keyCode) {
                                 case 40:
-                                    currentPane = currentPane < scope[listIdentifier].length - 1 ? currentPane + 1 : scope[listIdentifier].length - 1;
+                                    currentPane = currentPane < list.length - 1 ? currentPane + 1 : list.length - 1;
                                     scrollToCurrent();
                                     e.preventDefault();
                                     break;
@@ -138,7 +221,7 @@
                             $timeout.cancel(resetTimeout);
                             resetTimeout = $timeout(function() {
                                 preventScroll = false;
-                            }, scrollSpeed);
+                            }, defaults.scrollSpeed);
                         };
 
                         var resizeEvent = 'onorientationchange' in $window ? 'orientationchange' : 'resize';
@@ -152,10 +235,6 @@
                             angular.element($window).off('scroll', scroll);
                             $document.off('keydown', keyDown);
                         });
-
-                        $timeout(function() {
-                            scrollSpeed = defaults.scrollSpeed;
-                        }, defaults.scrollSpeed);
 
                     };
                 }
