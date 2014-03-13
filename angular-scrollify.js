@@ -110,10 +110,12 @@
                             jumpCount = 0;
 
                         var hamster = new Hamster(element[0]).wheel(function(e, delta, deltaX, deltaY) {
-                            var normalisedDelta = normaliseDelta(e.detail, e.wheelDelta);
+                            e = e.originalEvent || e;
+
+                            var normalisedDelta = normaliseDelta(e.detail, deltaY);
 
                             if (deltaY !== 0) {
-                                deltaCount += normalisedDelta;
+                                deltaCount += (normalisedDelta * 120);
 
                                 if (Math.abs(0 - deltaCount) >= 1) {
                                     deltaCount = 0;
@@ -125,6 +127,8 @@
                                         prevPane = currentPane;
 
                                         currentPane += jumpCount;
+
+                                        currentPane = currentPane < 0 ? 0 : currentPane > list.length - 1 ? list.length - 1 : currentPane;
 
                                         jumpCount = 0;
 
