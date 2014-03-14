@@ -14,6 +14,14 @@ angular.module('ExampleCtrl', []).controller('ExampleCtrl', ['$scope',
 
         }
 
+        $scope.top = function() {
+            $scope.$emit('scrollify:goTo', {
+                pane: 0,
+                instant: true,
+                id: 'myScrollify' // optional
+            });
+        };
+
     }
 ]);
 

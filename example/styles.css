@@ -8,7 +8,7 @@ body {
 	position: fixed;
 	top: 15%;
 	left: 0;
-	right: 0;
+	right: 60px;
 	bottom: 15%;
 }
 
@@ -42,4 +42,16 @@ body {
 	transform: translateY(-50%);
 	width: 100%;
 	text-align: center;
+}
+
+.top {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	font-size: 30px;
+	cursor: pointer;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }

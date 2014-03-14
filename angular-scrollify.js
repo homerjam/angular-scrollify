@@ -38,14 +38,16 @@
                         listIdentifier = match[2];
 
                         var defaults = {
-                            scrollSpeed: 200,
-                            scrollBarMod: 100,
-                            wheelMaxRate: 20,
-                            scrollMaxRate: 50
+                            id: +new Date(), // `id` if using multiple instances
+                            scrollSpeed: 200, // transition time to next pane (ms)
+                            speedMod: 3, // factor to divide `scrollSpeed` by when moving more than 1 pane
+                            scrollBarMod: 100, // length of container as a percentage of "real" length (prevent tiny handle on long pages)
+                            wheelThrottle: 300, // throttle wheel/trackpad event
+                            scrollMaxRate: 50 // debounce scroll event
                         };
 
-                        if (attr.ngCarouselOptions !== undefined) {
-                            angular.extend(defaults, scope.$eval(attr.ngCarouselOptions));
+                        if (attr.ngScrollifyOptions !== undefined) {
+                            angular.extend(defaults, scope.$eval(attr.ngScrollifyOptions));
                         }
 
                         var container = element.children();
@@ -55,14 +57,14 @@
                         wrapper.children().remove();
                         wrapper.append('<!-- ngScrollify -->');
 
-                        function _linker(pane) {
+                        var _linker = function(pane) {
                             linker(pane.scope, function(clone) {
                                 var paneClone = templatePane.clone();
                                 paneClone.children().replaceWith(clone);
                                 wrapper.append(paneClone);
                                 pane.element = paneClone;
                             });
-                        }
+                        };
 
                         var panes = [],
                             preventScroll = false,
@@ -90,9 +92,11 @@
 
                             setContainerHeight();
 
-                            setCurrentPane();
+                            $timeout(function() {
+                                setCurrentPane();
 
-                            moveWrapper(0);
+                                moveWrapper(0);
+                            });
                         };
 
                         var list = [];
@@ -115,15 +119,14 @@
                             var normalisedDelta = normaliseDelta(e.detail, deltaY);
 
                             if (deltaY !== 0) {
-                                deltaCount += (normalisedDelta * 120);
+                                throttle(function() {
+                                    deltaCount += (normalisedDelta * 120);
 
-                                if (Math.abs(0 - deltaCount) >= 1) {
-                                    deltaCount = 0;
+                                    if (Math.abs(0 - deltaCount) >= 1) {
+                                        deltaCount = 0;
 
-                                    jumpCount -= (deltaY > 0 ? 1 : -1);
+                                        jumpCount -= (deltaY > 0 ? 1 : -1);
 
-                                    $timeout.cancel(wheelTimeout);
-                                    wheelTimeout = $timeout(function() {
                                         prevPane = currentPane;
 
                                         currentPane += jumpCount;
@@ -133,8 +136,8 @@
                                         jumpCount = 0;
 
                                         scrollToCurrent();
-                                    }, defaults.wheelMaxRate);
-                                }
+                                    }
+                                }, defaults.wheelThrottle);
                             }
 
                             e.preventDefault();
@@ -178,7 +181,7 @@
 
                         var scrollTimeout;
 
-                        function scroll(e) {
+                        var scroll = function(e) {
                             $timeout.cancel(scrollTimeout);
 
                             if (!preventScroll) {
@@ -189,27 +192,68 @@
 
                                     setCurrentPane();
 
-                                    moveWrapper(Math.max(1, Math.abs(prevPane - currentPane)) * defaults.scrollSpeed);
+                                    moveWrapper(Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedMod) * defaults.scrollSpeed);
 
                                     prevPane = false;
                                 }, defaults.scrollMaxRate);
                             }
-                        }
+                        };
 
-                        function keyDown(e) {
+                        var goTo = function(i, instant) {
+                            prevPane = currentPane;
+                            currentPane = i;
+
+                            scrollToCurrent();
+
+                            if (instant === true) {
+                                moveWrapper(0);
+                            }
+                        };
+
+                        var next = function() {
+                            goTo(currentPane < list.length - 1 ? currentPane + 1 : list.length - 1);
+                        };
+
+                        var prev = function() {
+                            goTo(currentPane > 0 ? currentPane - 1 : currentPane);
+                        };
+
+                        scope.$on('scrollify:goTo', function(e, obj) {
+                            if (obj.id && defaults.id !== obj.id) {
+                                return false;
+                            }
+
+                            goTo(obj.pane, obj.instant);
+                        });
+
+                        scope.$on('scrollify:next', function(e, obj) {
+                            if (obj.id && defaults.id !== obj.id) {
+                                return false;
+                            }
+
+                            next();
+                        });
+
+                        scope.$on('scrollify:prev', function(e, obj) {
+                            if (obj.id && defaults.id !== obj.id) {
+                                return false;
+                            }
+
+                            prev();
+                        });
+
+                        var keyDown = function(e) {
                             switch (e.keyCode) {
                                 case 40:
-                                    currentPane = currentPane < list.length - 1 ? currentPane + 1 : list.length - 1;
-                                    scrollToCurrent();
+                                    next();
                                     e.preventDefault();
                                     break;
                                 case 38:
-                                    currentPane = currentPane > 0 ? currentPane - 1 : currentPane;
-                                    scrollToCurrent();
+                                    prev();
                                     e.preventDefault();
                                     break;
                             }
-                        }
+                        };
 
                         var resetTimeout;
 
