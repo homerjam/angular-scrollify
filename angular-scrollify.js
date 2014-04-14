@@ -162,11 +162,11 @@
                         };
 
                         var setCurrentPane = function() {
-                            currentPane = Math.round((list.length - 1) * ($window.scrollY / ($document[0].documentElement.scrollHeight - $window.innerHeight)));
+                            currentPane = Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
                         };
 
                         var scrollToCurrent = function() {
-                            $window.scrollTo(0, (($document[0].documentElement.scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
+                            $window.scrollTo(0, ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
                         };
 
                         var setContainerHeight = function() {

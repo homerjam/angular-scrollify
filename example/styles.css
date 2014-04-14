@@ -5,6 +5,7 @@ body {
 }
 
 .scrollify-dummy {
+	position: absolute;
 	width: 100%;
 	height: 100%;
 }
