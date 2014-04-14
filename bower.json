@@ -3,9 +3,14 @@
   "version": "0.0.1",
   "description": "Angular directive that snaps to panes on scroll",
   "main": "angular-scrollify.js",
+  "ignore": [
+  	"*",
+  	"!angular-scrollify.js",
+  	"!README.md"
+  ],
   "dependencies": {
-    "angular": ">= 1.2.4",
-    "modernizr": "~2.7.1",
-    "hamsterjs": "~1.0.4"
+    "angular": "^1.2.15",
+    "modernizr": "^2.7.1",
+    "hamsterjs": "^1.0.4"
   }
 }
