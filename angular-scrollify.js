@@ -22,7 +22,7 @@
             return {
                 restrict: 'A',
                 transclude: true,
-                template: '<div class="scrollify-container">' + '<div class="scrollify-wrapper">' + '<div class="scrollify-pane" ng-transclude></div>' + '</div>' + '</div>',
+                template: '<div class="scrollify-dummy"></div><div class="scrollify-container"><div class="scrollify-wrapper"><div class="scrollify-pane" ng-transclude></div></div></div>',
                 compile: function(_element, _attr, linker) {
                     return function link(scope, element, attr) {
 
@@ -50,7 +50,8 @@
                             angular.extend(defaults, scope.$eval(attr.ngScrollifyOptions));
                         }
 
-                        var container = element.children();
+                        var dummy = angular.element(element.children()[0]);
+                        var container = angular.element(element.children()[1]);
                         var wrapper = container.children();
 
                         var templatePane = wrapper.children();
@@ -169,7 +170,7 @@
                         };
 
                         var setContainerHeight = function() {
-                            _element.css('height', (list.length * defaults.scrollBarMod) + '%');
+                            dummy.css('height', (list.length * defaults.scrollBarMod) + '%');
                         };
 
                         var moveWrapper = function(transDuration) {
