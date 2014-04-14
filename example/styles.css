@@ -13,9 +13,11 @@ body {
 .scrollify-container {
 	position: fixed;
 	top: 15%;
-	left: 0;
-	right: 60px;
 	bottom: 15%;
+	padding-right: 60px;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 .scrollify-pane {
