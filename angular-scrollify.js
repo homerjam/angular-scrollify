@@ -38,6 +38,7 @@
                         listIdentifier = match[2];
 
                         var defaults = {
+                            container: 'window', // window/element - defines what to use for height measurements and scrolling
                             id: +new Date(), // `id` if using multiple instances
                             scrollSpeed: 200, // transition time to next pane (ms)
                             speedMod: 3, // factor to divide `scrollSpeed` by when moving more than 1 pane
@@ -162,11 +163,21 @@
                         };
 
                         var setCurrentPane = function() {
-                            currentPane = Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
+                            if (defaults.container === 'window') {
+                                currentPane = Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
+                            } else {
+                                currentPane = Math.round((list.length - 1) * (element[0].scrollTop / (dummy[0].scrollHeight - element[0].clientHeight)));
+                            }
                         };
 
                         var scrollToCurrent = function() {
-                            $window.scrollTo(0, ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
+                            if (defaults.container === 'window') {
+                                $window.scrollTo(0, ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
+                            } else {
+                                element[0].scrollTop = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;                       
+                            }
+
+                            moveWrapper(Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedMod) * defaults.scrollSpeed);
                         };
 
                         var setContainerHeight = function() {
@@ -276,12 +287,24 @@
                         var resizeEvent = 'onorientationchange' in $window ? 'orientationchange' : 'resize';
 
                         angular.element($window).on(resizeEvent, resize);
-                        angular.element($window).on('scroll', scroll);
+
+                        if (defaults.container === 'window') {
+                            angular.element($window).on('scroll', scroll);
+                        } else {
+                            element.on('scroll', scroll);
+                        }
+
                         $document.on('keydown', keyDown);
 
                         scope.$on('$destroy', function() {
                             angular.element($window).off(resizeEvent, resize);
-                            angular.element($window).off('scroll', scroll);
+
+                            if (defaults.container === 'window') {
+                                angular.element($window).off('scroll', scroll);
+                            } else {
+                                element.off('scroll', scroll);
+                            }
+
                             $document.off('keydown', keyDown);
                         });
 
