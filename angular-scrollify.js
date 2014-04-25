@@ -68,6 +68,7 @@
                             });
                         };
 
+
                         var panes = [],
                             preventScroll = false,
                             currentPane = 0,
@@ -77,6 +78,7 @@
                             for (var i = 0; i < list.length; i++) {
                                 var pane = {};
                                 pane.scope = scope.$new();
+                                pane.scope.$index = i;
                                 panes.push(pane);
 
                                 _linker(pane);
@@ -95,7 +97,7 @@
                             setContainerHeight();
 
                             $timeout(function() {
-                                setCurrentPane();
+                                setCurrentPane(getCurrentPane());
 
                                 moveWrapper(0);
                             });
@@ -131,9 +133,9 @@
 
                                         prevPane = currentPane;
 
-                                        currentPane += jumpCount;
+                                        var cp = currentPane + jumpCount;
 
-                                        currentPane = currentPane < 0 ? 0 : currentPane > list.length - 1 ? list.length - 1 : currentPane;
+                                        setCurrentPane(cp < 0 ? 0 : cp > list.length - 1 ? list.length - 1 : cp);
 
                                         jumpCount = 0;
 
@@ -162,11 +164,17 @@
                             return (Math.min(Math.max(d / 2, -1), 1)) * 2;
                         };
 
-                        var setCurrentPane = function() {
+                        var setCurrentPane = function(i) {
+                            currentPane = i;
+
+                            scope.$broadcast('scrollify:change', defaults.id, currentPane);
+                        };
+
+                        var getCurrentPane = function() {
                             if (defaults.container === 'window') {
-                                currentPane = Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
+                                return Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
                             } else {
-                                currentPane = Math.round((list.length - 1) * (element[0].scrollTop / (dummy[0].scrollHeight - element[0].clientHeight)));
+                                return Math.round((list.length - 1) * (element[0].scrollTop / (dummy[0].scrollHeight - element[0].clientHeight)));
                             }
                         };
 
@@ -184,11 +192,19 @@
                             dummy.css('height', (list.length * defaults.scrollBarMod) + '%');
                         };
 
+                        var moveEndTimeout;
+
                         var moveWrapper = function(transDuration) {
                             transDuration = transDuration || 0;
                             var wrapperY = -(currentPane * container[0].clientHeight);
                             wrapper[0].style[Modernizr.prefixed('transform')] = 'translate(0, ' + wrapperY + 'px)';
                             wrapper[0].style[Modernizr.prefixed('transitionDuration')] = transDuration + 'ms';
+
+                            $timeout.cancel(moveEndTimeout);
+
+                            moveEndTimeout = $timeout(function(){
+                                scope.$broadcast('scrollify:transitionEnd', defaults.id, currentPane);
+                            }, transDuration);
                         };
 
                         var scrollTimeout;
@@ -202,7 +218,7 @@
                                         prevPane = currentPane;
                                     }
 
-                                    setCurrentPane();
+                                    setCurrentPane(getCurrentPane());
 
                                     moveWrapper(Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedMod) * defaults.scrollSpeed);
 
@@ -213,7 +229,8 @@
 
                         var goTo = function(i, instant) {
                             prevPane = currentPane;
-                            currentPane = i;
+
+                            setCurrentPane(i);
 
                             scrollToCurrent();
 
