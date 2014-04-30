@@ -171,7 +171,9 @@
                         };
 
                         var getCurrentPane = function() {
-                            if (defaults.container === 'window') {
+                            if (list.length === 1) {
+                                return 0;
+                            } else if (defaults.container === 'window') {
                                 return Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
                             } else {
                                 return Math.round((list.length - 1) * (element[0].scrollTop / (dummy[0].scrollHeight - element[0].clientHeight)));
