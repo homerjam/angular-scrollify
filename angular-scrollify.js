@@ -70,9 +70,9 @@
                         };
 
                         var panes = [],
-                            preventScroll = false,
-                            currentPane = 0,
-                            prevPane = false;
+                            currentPane,
+                            prevPane = null,
+                            preventScroll = false;
 
                         var init = function() {
                             for (var i = 0; i < list.length; i++) {
@@ -97,7 +97,9 @@
                             setContainerHeight();
 
                             $timeout(function() {
-                                setCurrentPane(defaults.startIdx || getCurrentPane());
+                                currentPane = defaults.startIdx || getCurrentPane();
+
+                                scope.$broadcast('scrollify:init', defaults.id, currentPane);
 
                                 moveWrapper(0);
                             });
@@ -218,7 +220,7 @@
 
                             if (!preventScroll) {
                                 scrollTimeout = $timeout(function() {
-                                    if (prevPane === false) {
+                                    if (prevPane === null) {
                                         prevPane = currentPane;
                                     }
 
@@ -226,7 +228,7 @@
 
                                     moveWrapper(Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedMod) * defaults.scrollSpeed);
 
-                                    prevPane = false;
+                                    prevPane = null;
                                 }, defaults.scrollMaxRate);
                             }
                         };
