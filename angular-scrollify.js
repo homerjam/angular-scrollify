@@ -44,7 +44,8 @@
                             speedMod: 3, // factor to divide `scrollSpeed` by when moving more than 1 pane
                             scrollBarMod: 100, // length of container as a percentage of "real" length (prevent tiny handle on long pages)
                             wheelThrottle: 300, // throttle wheel/trackpad event
-                            scrollMaxRate: 50 // debounce scroll event
+                            scrollMaxRate: 50, // debounce scroll event
+                            // startIdx: 5 // optional start offset
                         };
 
                         if (attr.ngScrollifyOptions !== undefined) {
@@ -67,7 +68,6 @@
                                 pane.element = paneClone;
                             });
                         };
-
 
                         var panes = [],
                             preventScroll = false,
@@ -97,7 +97,7 @@
                             setContainerHeight();
 
                             $timeout(function() {
-                                setCurrentPane(getCurrentPane());
+                                setCurrentPane(defaults.startIdx || getCurrentPane());
 
                                 moveWrapper(0);
                             });
@@ -180,14 +180,16 @@
                             }
                         };
 
-                        var scrollToCurrent = function() {
+                        var scrollToCurrent = function(instant) {
+                            var speed = instant ? 0 : Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedMod) * defaults.scrollSpeed;
+
                             if (defaults.container === 'window') {
                                 $window.scrollTo(0, ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
                             } else {
                                 element[0].scrollTop = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;                       
                             }
 
-                            moveWrapper(Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedMod) * defaults.scrollSpeed);
+                            moveWrapper(speed);
                         };
 
                         var setContainerHeight = function() {
@@ -234,11 +236,7 @@
 
                             setCurrentPane(i);
 
-                            scrollToCurrent();
-
-                            if (instant === true) {
-                                moveWrapper(0);
-                            }
+                            scrollToCurrent(instant);
                         };
 
                         var next = function() {
@@ -293,9 +291,7 @@
 
                             setContainerHeight();
 
-                            scrollToCurrent();
-
-                            moveWrapper(0);
+                            scrollToCurrent(true);
 
                             $timeout.cancel(resetTimeout);
                             resetTimeout = $timeout(function() {
