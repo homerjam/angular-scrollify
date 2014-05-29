@@ -167,9 +167,16 @@
                         };
 
                         var setCurrentPane = function(i) {
-                            currentPane = i;
+                            var changeEvent = scope.$broadcast('scrollify:change', defaults.id, i);
 
-                            scope.$broadcast('scrollify:change', defaults.id, currentPane);
+                            if (changeEvent.defaultPrevented) {
+                                return false;
+
+                            } else {
+                                currentPane = i;
+
+                                return true;
+                            }
                         };
 
                         var getCurrentPane = function() {
@@ -234,11 +241,11 @@
                         };
 
                         var goTo = function(i, instant) {
-                            prevPane = currentPane;
+                            if (setCurrentPane(i)) {
+                                prevPane = currentPane;
 
-                            setCurrentPane(i);
-
-                            scrollToCurrent(instant);
+                                scrollToCurrent(instant);
+                            }
                         };
 
                         var next = function() {
