@@ -99,7 +99,7 @@
                             $timeout(function() {
                                 currentPane = defaults.startIdx || getCurrentPane();
 
-                                scope.$broadcast('scrollify:init', defaults.id, currentPane);
+                                scope.$broadcast('scrollify:init', { id: defaults.id, currentPane: currentPane });
 
                                 moveWrapper(0);
                             });
@@ -167,7 +167,7 @@
                         };
 
                         var setCurrentPane = function(i) {
-                            var changeEvent = scope.$broadcast('scrollify:change', defaults.id, i);
+                            var changeEvent = scope.$broadcast('scrollify:change', { id: defaults.id, i: i });
 
                             if (changeEvent.defaultPrevented) {
                                 return false;
@@ -216,7 +216,7 @@
                             $timeout.cancel(moveEndTimeout);
 
                             moveEndTimeout = $timeout(function(){
-                                scope.$broadcast('scrollify:transitionEnd', defaults.id, currentPane);
+                                scope.$broadcast('scrollify:transitionEnd', { id: defaults.id, currentPane: currentPane });
                             }, transDuration);
                         };
 
