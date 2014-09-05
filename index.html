@@ -1,31 +1,31 @@
 <html>
 
-	<head>
+<head>
 
-		<title>angular-scrollify</title>
+    <title>angular-scrollify</title>
 
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
-		<link rel="stylesheet" type="text/css" href="example/styles.css">
+    <link rel="stylesheet" type="text/css" href="example/styles.css">
 
-	</head>
+</head>
 
-	<body ng-app="ExampleApp" ng-controller="ExampleCtrl">
+<body ng-app="ExampleApp" ng-controller="ExampleCtrl">
 
-		<div class="scrollify" ng-scrollify="pane in data.panes" ng-scrollify-options="{scrollSpeed: 200, id: 'myScrollify'}">
-					
-			<div class="content" style="background-color: {{pane.color}}" data-index="{{pane.index}}"></div>
+    <div class="scrollify" ng-scrollify="pane in data.panes" ng-scrollify-options="{scrollSpeed: 200, id: 'myScrollify'}">
 
-		</div>
+        <div class="content" style="background-color: {{pane.color}}" data-index="{{pane.index}}"></div>
 
-		<div class="top" ng-click="top()">☝︎</div>
+    </div>
 
-		<script type="text/javascript" src="bower_components/angular/angular.min.js"></script>
-		<script type="text/javascript" src="bower_components/modernizr/modernizr.js"></script>
-		<script type="text/javascript" src="bower_components/hamsterjs/hamster.js"></script>
-		<script type="text/javascript" src="angular-scrollify.js"></script>
-		<script type="text/javascript" src="example/app.js"></script>
+    <div class="top" ng-click="top()">☝︎</div>
 
-	</body>
+    <script type="text/javascript" src="bower_components/angular/angular.min.js"></script>
+    <script type="text/javascript" src="bower_components/modernizr/modernizr.js"></script>
+    <script type="text/javascript" src="bower_components/hamsterjs/hamster.js"></script>
+    <script type="text/javascript" src="angular-scrollify.js"></script>
+    <script type="text/javascript" src="example/app.js"></script>
+
+</body>
 
 </html>

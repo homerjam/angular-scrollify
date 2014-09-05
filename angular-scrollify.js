@@ -3,6 +3,7 @@
 
     angular.module('angular-throttle', [])
         .factory('throttle', [
+
             function() {
                 var last = +new Date();
 
@@ -101,7 +102,10 @@
                             $timeout(function() {
                                 currentPane = options.startId || getCurrentPane();
 
-                                scope.$broadcast('scrollify:init', { id: options.id, currentPane: currentPane });
+                                scope.$broadcast('scrollify:init', {
+                                    id: options.id,
+                                    currentPane: currentPane
+                                });
 
                                 moveWrapper(0);
                             });
@@ -169,7 +173,10 @@
                         };
 
                         var setCurrentPane = function(i) {
-                            var changeEvent = scope.$broadcast('scrollify:change', { id: options.id, i: i });
+                            var changeEvent = scope.$broadcast('scrollify:change', {
+                                id: options.id,
+                                index: i
+                            });
 
                             if (changeEvent.defaultPrevented) {
                                 return false;
@@ -217,8 +224,11 @@
 
                             $timeout.cancel(moveEndTimeout);
 
-                            moveEndTimeout = $timeout(function(){
-                                scope.$broadcast('scrollify:transitionEnd', { id: defaults.id, currentPane: currentPane });
+                            moveEndTimeout = $timeout(function() {
+                                scope.$broadcast('scrollify:transitionEnd', {
+                                    id: defaults.id,
+                                    currentPane: currentPane
+                                });
                             }, transDuration);
                         };
 
