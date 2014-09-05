@@ -37,6 +37,8 @@
                         valueIdentifier = match[1];
                         listIdentifier = match[2];
 
+                        var options;
+
                         var defaults = {
                             container: 'window', // window/element - defines what to use for height measurements and scrolling
                             id: +new Date(), // `id` if using multiple instances
@@ -44,12 +46,12 @@
                             speedMod: 3, // factor to divide `scrollSpeed` by when moving more than 1 pane
                             scrollBarMod: 100, // length of container as a percentage of "real" length (prevent tiny handle on long pages)
                             wheelThrottle: 300, // throttle wheel/trackpad event
-                            scrollMaxRate: 50, // debounce scroll event
-                            // startIdx: 5 // optional start offset
+                            scrollMaxRate: 50 // debounce scroll event
+                            // startId: 5 // optional start offset
                         };
 
                         if (attr.ngScrollifyOptions !== undefined) {
-                            angular.extend(defaults, scope.$eval(attr.ngScrollifyOptions));
+                            options = angular.extend(defaults, scope.$eval(attr.ngScrollifyOptions));
                         }
 
                         var dummy = angular.element(element.children()[0]);
@@ -97,9 +99,9 @@
                             setContainerHeight();
 
                             $timeout(function() {
-                                currentPane = defaults.startIdx || getCurrentPane();
+                                currentPane = options.startId || getCurrentPane();
 
-                                scope.$broadcast('scrollify:init', defaults.id, currentPane);
+                                scope.$broadcast('scrollify:init', { id: options.id, currentPane: currentPane });
 
                                 moveWrapper(0);
                             });
@@ -143,7 +145,7 @@
 
                                         scrollToCurrent();
                                     }
-                                }, defaults.wheelThrottle);
+                                }, options.wheelThrottle);
                             }
 
                             e.preventDefault();
@@ -167,7 +169,7 @@
                         };
 
                         var setCurrentPane = function(i) {
-                            var changeEvent = scope.$broadcast('scrollify:change', defaults.id, i);
+                            var changeEvent = scope.$broadcast('scrollify:change', { id: options.id, i: i });
 
                             if (changeEvent.defaultPrevented) {
                                 return false;
@@ -182,7 +184,7 @@
                         var getCurrentPane = function() {
                             if (list.length === 1) {
                                 return 0;
-                            } else if (defaults.container === 'window') {
+                            } else if (options.container === 'window') {
                                 return Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
                             } else {
                                 return Math.round((list.length - 1) * (element[0].scrollTop / (dummy[0].scrollHeight - element[0].clientHeight)));
@@ -190,19 +192,19 @@
                         };
 
                         var scrollToCurrent = function(instant) {
-                            var speed = instant ? 0 : Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedMod) * defaults.scrollSpeed;
+                            var speed = instant ? 0 : Math.max(1, Math.abs(prevPane - currentPane) / options.speedMod) * options.scrollSpeed;
 
-                            if (defaults.container === 'window') {
+                            if (options.container === 'window') {
                                 $window.scrollTo(0, ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
                             } else {
-                                element[0].scrollTop = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;                       
+                                element[0].scrollTop = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;
                             }
 
                             moveWrapper(speed);
                         };
 
                         var setContainerHeight = function() {
-                            dummy.css('height', (list.length * defaults.scrollBarMod) + '%');
+                            dummy.css('height', (list.length * options.scrollBarMod) + '%');
                         };
 
                         var moveEndTimeout;
@@ -216,7 +218,7 @@
                             $timeout.cancel(moveEndTimeout);
 
                             moveEndTimeout = $timeout(function(){
-                                scope.$broadcast('scrollify:transitionEnd', defaults.id, currentPane);
+                                scope.$broadcast('scrollify:transitionEnd', { id: defaults.id, currentPane: currentPane });
                             }, transDuration);
                         };
 
@@ -257,7 +259,7 @@
                         };
 
                         scope.$on('scrollify:goTo', function(e, obj) {
-                            if (obj.id && defaults.id !== obj.id) {
+                            if (obj.id && options.id !== obj.id) {
                                 return false;
                             }
 
@@ -265,7 +267,7 @@
                         });
 
                         scope.$on('scrollify:next', function(e, obj) {
-                            if (obj.id && defaults.id !== obj.id) {
+                            if (obj.id && options.id !== obj.id) {
                                 return false;
                             }
 
@@ -273,7 +275,7 @@
                         });
 
                         scope.$on('scrollify:prev', function(e, obj) {
-                            if (obj.id && defaults.id !== obj.id) {
+                            if (obj.id && options.id !== obj.id) {
                                 return false;
                             }
 
@@ -305,14 +307,14 @@
                             $timeout.cancel(resetTimeout);
                             resetTimeout = $timeout(function() {
                                 preventScroll = false;
-                            }, defaults.scrollSpeed);
+                            }, options.scrollSpeed);
                         };
 
                         var resizeEvent = 'onorientationchange' in $window ? 'orientationchange' : 'resize';
 
                         angular.element($window).on(resizeEvent, resize);
 
-                        if (defaults.container === 'window') {
+                        if (options.container === 'window') {
                             angular.element($window).on('scroll', scroll);
                         } else {
                             element.on('scroll', scroll);
@@ -323,7 +325,7 @@
                         scope.$on('$destroy', function() {
                             angular.element($window).off(resizeEvent, resize);
 
-                            if (defaults.container === 'window') {
+                            if (options.container === 'window') {
                                 angular.element($window).off('scroll', scroll);
                             } else {
                                 element.off('scroll', scroll);
