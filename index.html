@@ -12,7 +12,12 @@
 
 <body ng-app="ExampleApp" ng-controller="ExampleCtrl">
 
-    <div class="scrollify" ng-scrollify="pane in data.panes" ng-scrollify-options="{scrollSpeed: 200, id: 'myScrollify'}">
+    <div class="scrollify"
+        hj-scrollify="pane in data.panes"
+        hj-scrollify-options="{
+            id: 'myScrollify',
+            scrollSpeed: 200,
+        }">
 
         <div class="content" style="background-color: {{pane.color}}" data-index="{{pane.index}}"></div>
 
@@ -21,7 +26,6 @@
     <div class="top" ng-click="top()">☝︎</div>
 
     <script type="text/javascript" src="bower_components/angular/angular.min.js"></script>
-    <script type="text/javascript" src="bower_components/modernizr/modernizr.js"></script>
     <script type="text/javascript" src="bower_components/hamsterjs/hamster.js"></script>
     <script type="text/javascript" src="angular-scrollify.js"></script>
     <script type="text/javascript" src="example/app.js"></script>

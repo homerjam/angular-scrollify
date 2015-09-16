@@ -1,38 +1,40 @@
 (function() {
     'use strict';
 
-    angular.module('angular-throttle', [])
-        .factory('throttle', [
+    var module = angular.module('hj.scrollify', []);
 
-            function() {
-                var last = +new Date();
+    module.constant('Hamster', Hamster);
 
-                return function(fn, delay) {
-                    var now = +new Date();
+    var throttle = function() {
+        var last = +new Date();
 
-                    if (now - last >= delay) {
-                        last = now;
-                        fn();
-                    }
-                };
+        return function(fn, delay) {
+            var now = +new Date();
+
+            if (now - last >= delay) {
+                last = now;
+                fn();
             }
-        ]);
+        };
+    };
 
-    angular.module('angular-scrollify', ['angular-throttle']).directive('ngScrollify', ['$log', '$window', '$document', '$timeout', 'throttle',
-        function($log, $window, $document, $timeout, throttle) {
+    module.factory('throttle', throttle);
+
+    module.directive('hjScrollify', ['$window', '$document', '$timeout', '$log', 'throttle', 'Hamster',
+        function($window, $document, $timeout, $log, throttle, Hamster) {
             return {
                 restrict: 'A',
                 transclude: true,
-                template: '<div class="scrollify-dummy"></div><div class="scrollify-container"><div class="scrollify-wrapper"><div class="scrollify-pane" ng-transclude></div></div></div>',
+                template: '<div class="scrollify__dummy"></div><div class="scrollify__container"><div class="scrollify__wrapper"><div class="scrollify__pane" ng-transclude></div></div></div>',
                 compile: function(_element, _attr, linker) {
                     return function link(scope, element, attr) {
 
-                        var expression = attr.ngScrollify;
+                        var expression = attr.hjScrollify;
                         var match = expression.match(/^\s*(.+)\s+in\s+(.*?)\s*$/);
                         var valueIdentifier, listIdentifier;
 
                         if (!match) {
-                            $log.error('Expected ngScrollify in form of "_item_ in _array_" but got "' + expression + '".');
+                            $log.error('Expected hjScrollify in form of "_item_ in _array_" but got "' + expression + '".');
                         }
 
                         valueIdentifier = match[1];
@@ -44,16 +46,36 @@
                             container: 'window', // window/element - defines what to use for height measurements and scrolling
                             id: +new Date(), // `id` if using multiple instances
                             scrollSpeed: 200, // transition time to next pane (ms)
-                            speedMod: 3, // factor to divide `scrollSpeed` by when moving more than 1 pane
-                            scrollBarMod: 100, // length of container as a percentage of "real" length (prevent tiny handle on long pages)
+                            speedModifier: 3, // factor to divide `scrollSpeed` by when moving more than 1 pane
+                            scrollBarModifier: 100, // length of container as a percentage of "real" length (prevents tiny handle on long pages)
                             wheelThrottle: 300, // throttle wheel/trackpad event
-                            scrollMaxRate: 50 // debounce scroll event
-                            // startId: 5 // optional start offset
+                            scrollMaxRate: 50, // debounce scroll event
+                            startIndex: false, // optional start offset
                         };
 
-                        if (attr.ngScrollifyOptions !== undefined) {
-                            options = angular.extend(defaults, scope.$eval(attr.ngScrollifyOptions));
+                        if (attr.hjScrollifyOptions !== undefined) {
+                            options = angular.extend(defaults, scope.$eval(attr.hjScrollifyOptions));
                         }
+
+                        var getPrefix = function(prop) {
+                            var prefixes = ['Moz', 'Khtml', 'Webkit', 'O', 'ms'],
+                                elem = document.createElement('div'),
+                                upper = prop.charAt(0).toUpperCase() + prop.slice(1);
+
+                            if (prop in elem.style)
+                                return prop;
+
+                            for (var len = prefixes.length; len--;) {
+                                if ((prefixes[len] + upper) in elem.style)
+                                    return (prefixes[len] + upper);
+                            }
+
+                            return false;
+                        };
+
+                        var isTouch = ('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch;
+                        var prefixedTransform = getPrefix('transform');
+                        var prefixedTransitionDuration = getPrefix('transitionDuration');
 
                         var dummy = angular.element(element.children()[0]);
                         var container = angular.element(element.children()[1]);
@@ -61,7 +83,7 @@
 
                         var templatePane = wrapper.children();
                         wrapper.children().remove();
-                        wrapper.append('<!-- ngScrollify -->');
+                        wrapper.append('<!-- hjScrollify -->');
 
                         var _linker = function(pane) {
                             linker(pane.scope, function(clone) {
@@ -72,10 +94,19 @@
                             });
                         };
 
-                        var panes = [],
-                            currentPane,
-                            prevPane = null,
-                            preventScroll = false;
+                        var list = [];
+
+                        var panes = [];
+                        var currentPane;
+                        var prevPane = null;
+                        var preventScroll = false;
+
+                        var moveEndTimeout;
+                        var scrollTimeout;
+                        var resetTimeout;
+
+                        var deltaCount = 0;
+                        var jumpCount = 0;
 
                         var init = function() {
                             for (var i = 0; i < list.length; i++) {
@@ -100,9 +131,9 @@
                             setContainerHeight();
 
                             $timeout(function() {
-                                currentPane = options.startId || getCurrentPane();
+                                currentPane = options.startIndex !== false ? options.startIndex : getCurrentPane();
 
-                                scope.$broadcast('scrollify:init', {
+                                scope.$emit('scrollify:init', {
                                     id: options.id,
                                     currentPane: currentPane
                                 });
@@ -111,28 +142,30 @@
                             });
                         };
 
-                        var list = [];
-
-                        scope.$watch(listIdentifier, function(n) {
-                            if (n !== undefined) {
-                                list = n;
+                        scope.$watch(listIdentifier, function(_list) {
+                            if (_list !== undefined) {
+                                list = _list;
 
                                 init();
                             }
                         });
 
-                        var wheelTimeout,
-                            deltaCount = 0,
-                            jumpCount = 0;
+                        new Hamster(element[0]).wheel(function(event, delta, deltaX, deltaY) {
+                            event = event.originalEvent || event;
 
-                        var hamster = new Hamster(element[0]).wheel(function(e, delta, deltaX, deltaY) {
-                            e = e.originalEvent || e;
-
-                            var normalisedDelta = normaliseDelta(e.detail, deltaY);
+                            var normalisedDelta = normaliseDelta(event.detail, deltaY);
 
                             if (deltaY !== 0) {
+                                preventScroll = true;
+
+                                $timeout.cancel(resetTimeout);
+
+                                resetTimeout = $timeout(function() {
+                                    preventScroll = false;
+                                }, options.scrollSpeed);
+
                                 throttle(function() {
-                                    deltaCount += (normalisedDelta * 120);
+                                    deltaCount += normalisedDelta;
 
                                     if (Math.abs(0 - deltaCount) >= 1) {
                                         deltaCount = 0;
@@ -141,9 +174,9 @@
 
                                         prevPane = currentPane;
 
-                                        var cp = currentPane + jumpCount;
+                                        var pane = currentPane + jumpCount;
 
-                                        setCurrentPane(cp < 0 ? 0 : cp > list.length - 1 ? list.length - 1 : cp);
+                                        setCurrentPane(pane < 0 ? 0 : pane > list.length - 1 ? list.length - 1 : pane);
 
                                         jumpCount = 0;
 
@@ -152,7 +185,7 @@
                                 }, options.wheelThrottle);
                             }
 
-                            e.preventDefault();
+                            event.preventDefault();
                         });
 
                         // http://stackoverflow.com/a/13650579/1050862
@@ -169,13 +202,14 @@
                             d = d < 1 ? d < -1 ? (-Math.pow(d, 2) - n1) / n : d : (Math.pow(d, 2) + n1) / n;
 
                             // Delta *should* not be greater than 2...
-                            return (Math.min(Math.max(d / 2, -1), 1)) * 2;
+                            return (Math.min(Math.max(d / 2, -1), 1)) * 240;
                         };
 
                         var setCurrentPane = function(i) {
-                            var changeEvent = scope.$broadcast('scrollify:change', {
+                            var changeEvent = scope.$emit('scrollify:change', {
                                 id: options.id,
-                                index: i
+                                index: i,
+                                data: panes[i].scope[valueIdentifier],
                             });
 
                             if (changeEvent.defaultPrevented) {
@@ -191,18 +225,21 @@
                         var getCurrentPane = function() {
                             if (list.length === 1) {
                                 return 0;
-                            } else if (options.container === 'window') {
+
+                            } else if (typeof options.container === 'string' && options.container.toLowerCase() === 'window') {
                                 return Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
+
                             } else {
                                 return Math.round((list.length - 1) * (element[0].scrollTop / (dummy[0].scrollHeight - element[0].clientHeight)));
                             }
                         };
 
-                        var scrollToCurrent = function(instant) {
-                            var speed = instant ? 0 : Math.max(1, Math.abs(prevPane - currentPane) / options.speedMod) * options.scrollSpeed;
+                        var scrollToCurrent = function(speed) {
+                            speed = speed !== undefined ? speed : Math.max(1, Math.abs(prevPane - currentPane) / options.speedModifier) * options.scrollSpeed;
 
-                            if (options.container === 'window') {
+                            if (typeof options.container === 'string' && options.container.toLowerCase() === 'window') {
                                 $window.scrollTo(0, ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
+
                             } else {
                                 element[0].scrollTop = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;
                             }
@@ -211,30 +248,28 @@
                         };
 
                         var setContainerHeight = function() {
-                            dummy.css('height', (list.length * options.scrollBarMod) + '%');
+                            dummy.css('height', (list.length * options.scrollBarModifier) + '%');
                         };
 
-                        var moveEndTimeout;
+                        var moveWrapper = function(transitionDuration) {
+                            transitionDuration = transitionDuration || 0;
 
-                        var moveWrapper = function(transDuration) {
-                            transDuration = transDuration || 0;
                             var wrapperY = -(currentPane * container[0].clientHeight);
-                            wrapper[0].style[Modernizr.prefixed('transform')] = 'translate(0, ' + wrapperY + 'px)';
-                            wrapper[0].style[Modernizr.prefixed('transitionDuration')] = transDuration + 'ms';
+
+                            wrapper[0].style[prefixedTransform] = 'translate(0, ' + wrapperY + 'px)';
+                            wrapper[0].style[prefixedTransitionDuration] = transitionDuration + 'ms';
 
                             $timeout.cancel(moveEndTimeout);
 
                             moveEndTimeout = $timeout(function() {
-                                scope.$broadcast('scrollify:transitionEnd', {
+                                scope.$emit('scrollify:transitionEnd', {
                                     id: defaults.id,
                                     currentPane: currentPane
                                 });
-                            }, transDuration);
+                            }, transitionDuration);
                         };
 
-                        var scrollTimeout;
-
-                        var scroll = function(e) {
+                        var scroll = function(event) {
                             $timeout.cancel(scrollTimeout);
 
                             if (!preventScroll) {
@@ -245,18 +280,18 @@
 
                                     setCurrentPane(getCurrentPane());
 
-                                    moveWrapper(Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedMod) * defaults.scrollSpeed);
+                                    moveWrapper(Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedModifier) * defaults.scrollSpeed);
 
                                     prevPane = null;
                                 }, defaults.scrollMaxRate);
                             }
                         };
 
-                        var goTo = function(i, instant) {
+                        var goTo = function(i, speed) {
                             if (setCurrentPane(i)) {
                                 prevPane = currentPane;
 
-                                scrollToCurrent(instant);
+                                scrollToCurrent(speed);
                             }
                         };
 
@@ -268,15 +303,15 @@
                             goTo(currentPane > 0 ? currentPane - 1 : currentPane);
                         };
 
-                        scope.$on('scrollify:goTo', function(e, obj) {
+                        scope.$on('scrollify:goTo', function(event, obj) {
                             if (obj.id && options.id !== obj.id) {
                                 return false;
                             }
 
-                            goTo(obj.pane, obj.instant);
+                            goTo(obj.pane, obj.speed);
                         });
 
-                        scope.$on('scrollify:next', function(e, obj) {
+                        scope.$on('scrollify:next', function(event, obj) {
                             if (obj.id && options.id !== obj.id) {
                                 return false;
                             }
@@ -284,7 +319,7 @@
                             next();
                         });
 
-                        scope.$on('scrollify:prev', function(e, obj) {
+                        scope.$on('scrollify:prev', function(event, obj) {
                             if (obj.id && options.id !== obj.id) {
                                 return false;
                             }
@@ -292,32 +327,31 @@
                             prev();
                         });
 
-                        var keyDown = function(e) {
-                            switch (e.keyCode) {
+                        var keyDown = function(event) {
+                            switch (event.keyCode) {
                                 case 40:
                                     next();
-                                    e.preventDefault();
+                                    event.preventDefault();
                                     break;
                                 case 38:
                                     prev();
-                                    e.preventDefault();
+                                    event.preventDefault();
                                     break;
                             }
                         };
 
-                        var resetTimeout;
-
-                        var resize = function(e) {
+                        var resize = function(event) {
                             preventScroll = true;
 
-                            setContainerHeight();
-
-                            scrollToCurrent(true);
-
                             $timeout.cancel(resetTimeout);
+
                             resetTimeout = $timeout(function() {
                                 preventScroll = false;
                             }, options.scrollSpeed);
+
+                            setContainerHeight();
+
+                            scrollToCurrent(0);
                         };
 
                         var resizeEvent = 'onorientationchange' in $window ? 'orientationchange' : 'resize';

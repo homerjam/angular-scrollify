@@ -15,9 +15,9 @@ angular.module('ExampleCtrl', []).controller('ExampleCtrl', ['$scope',
         }
 
         $scope.top = function() {
-            $scope.$emit('scrollify:goTo', {
+            $scope.$broadcast('scrollify:goTo', {
                 pane: 0,
-                instant: true,
+                speed: 0,
                 id: 'myScrollify' // optional
             });
         };
@@ -25,4 +25,4 @@ angular.module('ExampleCtrl', []).controller('ExampleCtrl', ['$scope',
     }
 ]);
 
-angular.module('ExampleApp', ['angular-scrollify', 'ExampleCtrl']).config(function() {});
+angular.module('ExampleApp', ['hj.scrollify', 'ExampleCtrl']).config(function() {});
