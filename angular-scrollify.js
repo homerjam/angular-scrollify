@@ -97,7 +97,7 @@
                             container: 'window', // window/element - defines what to use for height measurements and scrolling
                             id: +new Date(), // `id` if using multiple instances
                             scrollSpeed: 400, // transition time to next pane (ms)
-                            speedModifier: 10, // factor to divide `scrollSpeed` by when moving more than 1 pane
+                            speedModifier: 0.5, // factor to multiply `scrollSpeed` by when moving more than 1 pane
                             scrollBarModifier: 100, // length of container as a percentage of "real" length (prevents tiny handle on long pages)
                             wheelThrottle: 300, // throttle wheel/trackpad event
                             scrollDebounce: 50, // debounce scroll event
@@ -284,7 +284,7 @@
 
                                     setCurrentPane(pane < 0 ? 0 : pane > list.length - 1 ? list.length - 1 : pane);
 
-                                    scrollToCurrent();
+                                    scrollToCurrent(options.scrollSpeed);
                                 });
                             }
                         };
@@ -326,7 +326,7 @@
                         });
 
                         var scrollToCurrent = function(speed) {
-                            speed = speed !== undefined ? speed : Math.max(1, Math.abs(prevPane - currentPane) / options.speedModifier) * options.scrollSpeed;
+                            speed = speed !== undefined ? speed : (Math.max(1, Math.abs(prevPane - currentPane)) * options.scrollSpeed) * options.speedModifier;
 
                             preventScroll = true;
 
@@ -393,8 +393,10 @@
                         };
 
                         var goTo = function(i, speed) {
+                            var _currentPane = currentPane;
+
                             if (setCurrentPane(i)) {
-                                prevPane = currentPane;
+                                prevPane = _currentPane;
 
                                 scrollToCurrent(speed);
                             }
