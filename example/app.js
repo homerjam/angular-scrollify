@@ -22,6 +22,10 @@ angular.module('ExampleCtrl', []).controller('ExampleCtrl', ['$scope',
             });
         };
 
+        $scope.$on('scrollify:change', function(event, args) {
+            console.log(args);
+        });
+
     }
 ]);
 
