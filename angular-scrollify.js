@@ -232,7 +232,7 @@
 
                         //             setCurrentPane(pane < 0 ? 0 : pane > list.length - 1 ? list.length - 1 : pane);
 
-                        //             scrollToCurrent();
+                        //             scrollToCurrent(options.scrollSpeed);
                         //         });
                         //     }
                         // };
@@ -402,12 +402,16 @@
                             }
                         };
 
-                        var next = function() {
-                            goTo(currentPane < list.length - 1 ? currentPane + 1 : list.length - 1);
+                        var next = function(speed) {
+                            speed = speed !== undefined ? speed : options.scrollSpeed;
+
+                            goTo(currentPane < list.length - 1 ? currentPane + 1 : list.length - 1, speed);
                         };
 
-                        var prev = function() {
-                            goTo(currentPane > 0 ? currentPane - 1 : currentPane);
+                        var prev = function(speed) {
+                            speed = speed !== undefined ? speed : options.scrollSpeed;
+
+                            goTo(currentPane > 0 ? currentPane - 1 : currentPane, speed);
                         };
 
                         scope.$on('scrollify:goTo', function(event, obj) {
@@ -423,7 +427,7 @@
                                 return false;
                             }
 
-                            next();
+                            next(obj.speed);
                         });
 
                         scope.$on('scrollify:prev', function(event, obj) {
@@ -431,7 +435,7 @@
                                 return false;
                             }
 
-                            prev();
+                            prev(obj.speed);
                         });
 
                         var keyDown = function(event) {
