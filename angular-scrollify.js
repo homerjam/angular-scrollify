@@ -96,9 +96,9 @@
                         var defaults = {
                             container: 'window', // window/element - defines what to use for height measurements and scrolling
                             id: +new Date(), // `id` if using multiple instances
-                            scrollSpeed: 400, // transition time to next pane (ms)
-                            speedModifier: 0.5, // factor to multiply `scrollSpeed` by when moving more than 1 pane
-                            scrollBarModifier: 100, // length of container as a percentage of "real" length (prevents tiny handle on long pages)
+                            scrollSpeed: 600, // transition time to next pane (ms)
+                            speedModifier: 0.33, // factor to multiply `scrollSpeed` by when moving more than 1 pane
+                            scrollBarModifier: 0.25, // length of container as a percentage of "real" length (prevents tiny handle on long pages)
                             wheelThrottle: 300, // throttle wheel/trackpad event
                             scrollDebounce: 50, // debounce scroll event
                             startIndex: false, // optional start offset
@@ -194,51 +194,6 @@
                             }
                         });
 
-                        // var wheelTimeout;
-                        // var allowWheel = true;
-                        // var lastWheelEvent = 0;
-
-                        // var wheelHandler = function(event, delta, deltaX, deltaY) {
-                        //     event = event.originalEvent || event;
-
-                        //     event.preventDefault();
-
-                        //     // Re-normalise (if switched between trackpad and mouse wheel)
-                        //     if (Math.abs(deltaY) >= 40) {
-                        //         deltaY = deltaY / 40;
-                        //     }
-
-                        //     // Ignore large delta values
-                        //     if (Math.abs(0 - deltaY) > 1) {
-                        //         // return;
-                        //     }
-
-                        //     var now = +new Date();
-
-                        //     if (now - lastWheelEvent < 100) {
-                        //         allowWheel = false;
-
-                        //     } else {
-                        //         allowWheel = true;
-                        //     }
-
-                        //     lastWheelEvent = +new Date();
-
-                        //     if (deltaY !== 0 && allowWheel) {
-                        //         throttle(options.wheelThrottle, function() {
-                        //             prevPane = currentPane;
-
-                        //             var pane = currentPane + (deltaY > 0 ? -1 : 1);
-
-                        //             setCurrentPane(pane < 0 ? 0 : pane > list.length - 1 ? list.length - 1 : pane);
-
-                        //             scrollToCurrent(options.scrollSpeed);
-                        //         });
-                        //     }
-                        // };
-
-                        // new Hamster(element[0]).wheel(wheelHandler);
-
                         var deltaBuffer = [120, 120, 120];
 
                         function isTouchpad(deltaY) {
@@ -326,7 +281,13 @@
                         });
 
                         var scrollToCurrent = function(speed) {
-                            speed = speed !== undefined ? speed : (Math.max(1, Math.abs(prevPane - currentPane)) * options.scrollSpeed) * options.speedModifier;
+                            var distance = Math.max(1, Math.abs(prevPane - currentPane));
+
+                            speed = speed !== undefined ? speed : distance * options.scrollSpeed;
+
+                            if (distance > 1) {
+                                speed = speed * speed.speedModifier;
+                            }
 
                             preventScroll = true;
 
@@ -343,7 +304,7 @@
                         };
 
                         var setContainerHeight = function() {
-                            dummy.css('height', (list.length * options.scrollBarModifier) + '%');
+                            dummy.css('height', Math.max(200, (list.length * options.scrollBarModifier) * 100) + '%');
                         };
 
                         var moveTimeout;
@@ -352,16 +313,15 @@
                         var moveWrapper = function(transitionDuration) {
                             transitionDuration = transitionDuration || 0;
 
-                            var wrapperY = -(currentPane * container[0].clientHeight);
-
-                            if (transitionDuration !== lastTransitionDuration) {
-                                wrapper[0].style[prefixedTransitionDuration] = transitionDuration + 'ms';
-                            }
-
-                            lastTransitionDuration = transitionDuration;
+                            // Kill previous transition (prevents skipping)
+                            wrapper[0].style[prefixedTransitionDuration] = '0ms';
 
                             $timeout(function() {
-                                wrapper[0].style[prefixedTransform] = 'translate(0, ' + wrapperY + 'px)';
+                                wrapper[0].style[prefixedTransitionDuration] = transitionDuration + 'ms';
+
+                                var wrapperY = -(currentPane * container[0].clientHeight);
+
+                                wrapper[0].style[prefixedTransform] = 'translateY(' + wrapperY + 'px)';
 
                                 $timeout.cancel(moveTimeout);
 
@@ -381,7 +341,15 @@
 
                             setCurrentPane(getCurrentPane());
 
-                            moveWrapper(Math.max(1, Math.abs(prevPane - currentPane) / defaults.speedModifier) * defaults.scrollSpeed);
+                            var distance = Math.max(1, Math.abs(prevPane - currentPane));
+
+                            var speed = distance * options.scrollSpeed;
+
+                            if (distance > 1) {
+                                speed = speed * options.speedModifier;
+                            }
+
+                            moveWrapper(speed);
 
                             prevPane = null;
                         });
@@ -414,6 +382,10 @@
                             goTo(currentPane > 0 ? currentPane - 1 : currentPane, speed);
                         };
 
+                        scope.$scrollify = {
+                            goTo: goTo
+                        };
+
                         scope.$on('scrollify:goTo', function(event, obj) {
                             if (obj.id && options.id !== obj.id) {
                                 return false;
@@ -441,12 +413,12 @@
                         var keyDown = function(event) {
                             switch (event.keyCode) {
                                 case 40:
-                                    next();
                                     event.preventDefault();
+                                    next();
                                     break;
                                 case 38:
-                                    prev();
                                     event.preventDefault();
+                                    prev();
                                     break;
                             }
                         };
