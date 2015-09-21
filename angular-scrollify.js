@@ -253,20 +253,22 @@
 
                             debounceScrollToCurrent();
 
-                            var scrollY;
+                            if (!isTouch) {
+                                var scrollY;
 
-                            if (options.container === 'window') {
-                                scrollY = ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane;
+                                if (options.container === 'window') {
+                                    scrollY = ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane;
 
-                                $window.scrollTo(0, scrollY);
+                                    $window.scrollTo(0, scrollY);
 
-                            } else {
-                                scrollY = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;
+                                } else {
+                                    scrollY = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;
 
-                                element[0].scrollTop = scrollY;
+                                    element[0].scrollTop = scrollY;
+                                }
+
+                                container[0].style[prefixedTransform] = 'translateY(' + scrollY + 'px)';
                             }
-
-                            container[0].style[prefixedTransform] = 'translateY(' + scrollY + 'px)';
 
                             moveSlider(speed);
                         };
