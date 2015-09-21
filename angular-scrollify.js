@@ -5,6 +5,7 @@
 
     module.constant('Hamster', Hamster);
     module.constant('Lethargy', Lethargy);
+    module.constant('Hammer', Hammer);
 
     module.factory('throttle', function() {
         var last = +new Date();
@@ -71,8 +72,8 @@
         };
     }]);
 
-    module.directive('hjScrollify', ['$window', '$document', '$timeout', '$log', 'throttle', 'debounce', 'Hamster', 'Lethargy',
-        function($window, $document, $timeout, $log, throttle, debounce, Hamster, Lethargy) {
+    module.directive('hjScrollify', ['$window', '$document', '$timeout', '$log', 'throttle', 'debounce', 'Hamster', 'Lethargy', 'Hammer',
+        function($window, $document, $timeout, $log, throttle, debounce, Hamster, Lethargy, Hammer) {
             return {
                 restrict: 'A',
                 transclude: true,
@@ -96,12 +97,13 @@
                         var defaults = {
                             container: 'window', // window/element - defines what to use for height measurements and scrolling
                             id: +new Date(), // `id` if using multiple instances
-                            scrollSpeed: 600, // transition time to next pane (ms)
+                            scrollSpeed: 600, // transition time between panes (ms)
                             scrollSpeedModifier: 3, // root factor to calculate `scrollSpeed` by when moving more than 1 pane
                             scrollBarModifier: 0.25, // length of container as a percentage of "real" length (prevents tiny handle on long pages)
-                            wheelThrottle: 300, // throttle wheel/trackpad event
-                            scrollDebounce: 50, // debounce scroll event
-                            startIndex: false, // optional start offset
+                            wheelThrottle: 300,
+                            scrollDebounce: 50,
+                            startIndex: false, // optional
+                            touchEnabled: true,
                         };
 
                         if (attr.hjScrollifyOptions !== undefined) {
@@ -109,16 +111,18 @@
                         }
 
                         var getPrefix = function(prop) {
-                            var prefixes = ['Moz', 'Khtml', 'Webkit', 'O', 'ms'],
-                                elem = document.createElement('div'),
-                                upper = prop.charAt(0).toUpperCase() + prop.slice(1);
+                            var prefixes = ['Moz', 'Khtml', 'Webkit', 'O', 'ms'];
+                            var el = document.createElement('div');
+                            var upper = prop.charAt(0).toUpperCase() + prop.slice(1);
 
-                            if (prop in elem.style)
+                            if (prop in el.style) {
                                 return prop;
+                            }
 
                             for (var len = prefixes.length; len--;) {
-                                if ((prefixes[len] + upper) in elem.style)
+                                if ((prefixes[len] + upper) in el.style) {
                                     return (prefixes[len] + upper);
+                                }
                             }
 
                             return false;
@@ -128,38 +132,32 @@
                         var prefixedTransform = getPrefix('transform');
                         var prefixedTransitionDuration = getPrefix('transitionDuration');
 
-                        var dummy = angular.element(element.children()[0]);
-                        var container = angular.element(element.children()[1]);
-                        var wrapper = container.children();
-
-                        var templatePane = wrapper.children();
-                        wrapper.children().remove();
-                        wrapper.append('<!-- hjScrollify -->');
-
-                        var _linker = function(pane) {
-                            linker(pane.scope, function(clone) {
-                                var paneClone = templatePane.clone();
-                                paneClone.children().replaceWith(clone);
-                                wrapper.append(paneClone);
-                                pane.element = paneClone;
-                            });
-                        };
+                        var dummy = angular.element(element[0].querySelector('.scrollify__dummy'));
+                        var container = angular.element(element[0].querySelector('.scrollify__container'));
+                        var wrapper = angular.element(element[0].querySelector('.scrollify__wrapper'));
+                        var templatePane = angular.element(element[0].querySelector('.scrollify__pane'));
 
                         var list = [];
-
                         var panes = [];
                         var currentPane;
                         var prevPane = null;
                         var preventScroll = false;
 
-                        var init = function() {
+                        var buildPanes = function() {
+                            wrapper.children().remove();
+
                             for (var i = 0; i < list.length; i++) {
                                 var pane = {};
                                 pane.scope = scope.$new();
                                 pane.scope.$index = i;
                                 panes.push(pane);
 
-                                _linker(pane);
+                                linker(pane.scope, function(clone) {
+                                    var paneClone = templatePane.clone();
+                                    paneClone.children().replaceWith(clone);
+                                    wrapper.append(paneClone);
+                                    pane.element = paneClone;
+                                });
 
                                 angular.element(pane.element).attr('data-index', i);
                             }
@@ -171,6 +169,10 @@
                                     panes[i].scope.$apply();
                                 }
                             }
+                        };
+
+                        var init = function() {
+                            buildPanes();
 
                             setContainerHeight();
 
@@ -193,59 +195,6 @@
                                 init();
                             }
                         });
-
-                        var deltaBuffer = [120, 120, 120];
-
-                        function isTouchpad(deltaY) {
-                            if (!deltaY) {
-                                return;
-                            }
-                            deltaY = Math.abs(deltaY);
-                            deltaBuffer.push(deltaY);
-                            deltaBuffer.shift();
-                            var allDivisable = (isDivisible(deltaBuffer[0], 120) &&
-                                isDivisible(deltaBuffer[1], 120) &&
-                                isDivisible(deltaBuffer[2], 120));
-                            return !allDivisable;
-                        }
-
-                        function isDivisible(n, divisor) {
-                            return (Math.floor(n / divisor) === n / divisor);
-                        }
-
-                        var lethargy = new Lethargy();
-
-                        var wheelHandler = function(event) {
-                            event = event.originalEvent || event;
-
-                            event.preventDefault();
-
-                            var touchPad = isTouchpad(event.wheelDeltaY || event.wheelDelta || 0);
-
-                            var deltaY;
-
-                            if (touchPad) {
-                                deltaY = lethargy.check(event);
-
-                            } else {
-                                deltaY = Hamster.normalise.delta(event)[2] > 0 ? 1 : -1;
-                            }
-
-                            if (deltaY !== false) {
-                                throttle(options.wheelThrottle, function() {
-                                    prevPane = currentPane;
-
-                                    var pane = currentPane - deltaY;
-
-                                    setCurrentPane(pane < 0 ? 0 : pane > list.length - 1 ? list.length - 1 : pane);
-
-                                    scrollToCurrent(options.scrollSpeed);
-                                });
-                            }
-                        };
-
-                        element.on('mousewheel', wheelHandler);
-                        element.on('DOMMouseScroll', wheelHandler);
 
                         var setCurrentPane = function(i) {
                             var changeEvent = scope.$emit('scrollify:change', {
@@ -306,7 +255,13 @@
                         };
 
                         var setContainerHeight = function() {
-                            dummy.css('height', Math.max(200, (list.length * options.scrollBarModifier) * 100) + '%');
+                            if (isTouch) {
+                                dummy.css('display', 'none');
+                            }
+
+                            if (!isTouch) {
+                                dummy.css('height', Math.max(200, (list.length * options.scrollBarModifier) * 100) + '%');
+                            }
                         };
 
                         var moveTimeout;
@@ -333,28 +288,6 @@
                                     });
                                 }, transitionDuration);
                             });
-                        };
-
-                        var debounceScroll = debounce(defaults.scrollDebounce, function() {
-                            if (prevPane === null) {
-                                prevPane = currentPane;
-                            }
-
-                            setCurrentPane(getCurrentPane());
-
-                            var distance = Math.max(1, Math.abs(prevPane - currentPane));
-
-                            var speed = Math.round(Math.max(1, calcRoot(distance, options.scrollSpeedModifier))) * options.scrollSpeed;
-
-                            moveWrapper(speed);
-
-                            prevPane = null;
-                        });
-
-                        var scroll = function() {
-                            if (!preventScroll) {
-                                debounceScroll();
-                            }
                         };
 
                         var goTo = function(i, speed) {
@@ -407,6 +340,107 @@
                             prev(obj.speed);
                         });
 
+                        var deltaBuffer = [120, 120, 120];
+
+                        var isTouchpad = function(deltaY) {
+                            if (!deltaY) {
+                                return;
+                            }
+                            deltaY = Math.abs(deltaY);
+                            deltaBuffer.push(deltaY);
+                            deltaBuffer.shift();
+                            var allDivisable = (isDivisible(deltaBuffer[0], 120) &&
+                                isDivisible(deltaBuffer[1], 120) &&
+                                isDivisible(deltaBuffer[2], 120));
+                            return !allDivisable;
+                        };
+
+                        var isDivisible = function isDivisible(n, divisor) {
+                            return (Math.floor(n / divisor) === n / divisor);
+                        };
+
+                        var lethargy = new Lethargy();
+
+                        var wheelHandler = function(event) {
+                            event = event.originalEvent || event;
+
+                            event.preventDefault();
+
+                            var touchPad = isTouchpad(event.wheelDeltaY || event.wheelDelta || 0);
+
+                            var deltaY;
+
+                            if (touchPad) {
+                                deltaY = lethargy.check(event);
+
+                            } else {
+                                deltaY = Hamster.normalise.delta(event)[2] > 0 ? 1 : -1;
+                            }
+
+                            if (deltaY !== false) {
+                                throttle(options.wheelThrottle, function() {
+                                    prevPane = currentPane;
+
+                                    var pane = currentPane - deltaY;
+
+                                    setCurrentPane(pane < 0 ? 0 : pane > list.length - 1 ? list.length - 1 : pane);
+
+                                    scrollToCurrent(options.scrollSpeed);
+                                });
+                            }
+                        };
+
+                        var debounceScroll = debounce(defaults.scrollDebounce, function() {
+                            if (prevPane === null) {
+                                prevPane = currentPane;
+                            }
+
+                            setCurrentPane(getCurrentPane());
+
+                            var distance = Math.max(1, Math.abs(prevPane - currentPane));
+
+                            var speed = Math.round(Math.max(1, calcRoot(distance, options.scrollSpeedModifier))) * options.scrollSpeed;
+
+                            moveWrapper(speed);
+
+                            prevPane = null;
+                        });
+
+                        var scroll = function() {
+                            if (!preventScroll) {
+                                debounceScroll();
+                            }
+                        };
+
+                        var hammer;
+
+                        if (isTouch && options.touchEnabled) {
+                            hammer = new Hammer(element[0]);
+
+                            hammer.get('swipe').set({
+                                direction: Hammer.DIRECTION_ALL
+                            });
+
+                            hammer.on('swipeup', function() {
+                                next();
+                            });
+
+                            hammer.on('swipedown', function() {
+                                prev();
+                            });
+                        }
+
+                        if (!isTouch) {
+                            element.on('mousewheel', wheelHandler);
+                            element.on('DOMMouseScroll', wheelHandler);
+
+                            if (options.container === 'window') {
+                                angular.element($window).on('scroll', scroll);
+                            } else {
+                                element.on('scroll', scroll);
+                            }
+                        }
+
                         var keyDown = function(event) {
                             switch (event.keyCode) {
                                 case 40:
@@ -419,6 +453,8 @@
                                     break;
                             }
                         };
+
+                        $document.on('keydown', keyDown);
 
                         var debounceResize = debounce(250, function() {
                             preventScroll = false;
@@ -438,14 +474,6 @@
 
                         angular.element($window).on(resizeEvent, resize);
 
-                        if (options.container === 'window') {
-                            angular.element($window).on('scroll', scroll);
-                        } else {
-                            element.on('scroll', scroll);
-                        }
-
-                        $document.on('keydown', keyDown);
-
                         scope.$on('$destroy', function() {
                             angular.element($window).off(resizeEvent, resize);
 
@@ -456,6 +484,9 @@
                             }
 
                             $document.off('keydown', keyDown);
+
+                            element.off('mousewheel', wheelHandler);
+                            element.off('DOMMouseScroll', wheelHandler);
                         });
 
                     };
