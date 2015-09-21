@@ -97,7 +97,7 @@
                             container: 'window', // window/element - defines what to use for height measurements and scrolling
                             id: +new Date(), // `id` if using multiple instances
                             scrollSpeed: 600, // transition time to next pane (ms)
-                            speedModifier: 0.33, // factor to multiply `scrollSpeed` by when moving more than 1 pane
+                            scrollSpeedModifier: 3, // root factor to calculate `scrollSpeed` by when moving more than 1 pane
                             scrollBarModifier: 0.25, // length of container as a percentage of "real" length (prevents tiny handle on long pages)
                             wheelThrottle: 300, // throttle wheel/trackpad event
                             scrollDebounce: 50, // debounce scroll event
@@ -280,14 +280,16 @@
                             preventScroll = false;
                         });
 
+                        var calcRoot = function(x, factor) {
+                            factor = factor || 2;
+                            var y = Math.pow(Math.abs(x), 1 / factor);
+                            return x < 0 ? -y : y;
+                        };
+
                         var scrollToCurrent = function(speed) {
                             var distance = Math.max(1, Math.abs(prevPane - currentPane));
 
-                            speed = speed !== undefined ? speed : distance * options.scrollSpeed;
-
-                            if (distance > 1) {
-                                speed = speed * speed.speedModifier;
-                            }
+                            speed = speed !== undefined ? speed : Math.round(Math.max(1, calcRoot(distance, options.scrollSpeedModifier))) * options.scrollSpeed;
 
                             preventScroll = true;
 
@@ -308,7 +310,6 @@
                         };
 
                         var moveTimeout;
-                        var lastTransitionDuration;
 
                         var moveWrapper = function(transitionDuration) {
                             transitionDuration = transitionDuration || 0;
@@ -343,18 +344,14 @@
 
                             var distance = Math.max(1, Math.abs(prevPane - currentPane));
 
-                            var speed = distance * options.scrollSpeed;
-
-                            if (distance > 1) {
-                                speed = speed * options.speedModifier;
-                            }
+                            var speed = Math.round(Math.max(1, calcRoot(distance, options.scrollSpeedModifier))) * options.scrollSpeed;
 
                             moveWrapper(speed);
 
                             prevPane = null;
                         });
 
-                        var scroll = function(event) {
+                        var scroll = function() {
                             if (!preventScroll) {
                                 debounceScroll();
                             }
@@ -427,7 +424,7 @@
                             preventScroll = false;
                         });
 
-                        var resize = function(event) {
+                        var resize = function() {
                             preventScroll = true;
 
                             debounceResize();
