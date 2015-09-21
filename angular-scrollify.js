@@ -344,19 +344,23 @@
                         });
 
                         scope.$on('scrollify:next', function(event, obj) {
-                            if (obj.id && options.id !== obj.id) {
+                            if (obj && obj.id && options.id !== obj.id) {
                                 return false;
                             }
 
-                            next(obj.speed);
+                            var speed = obj && obj.speed;
+
+                            next(speed);
                         });
 
                         scope.$on('scrollify:prev', function(event, obj) {
-                            if (obj.id && options.id !== obj.id) {
+                            if (obj && obj.id && options.id !== obj.id) {
                                 return false;
                             }
 
-                            prev(obj.speed);
+                            var speed = obj && obj.speed;
+
+                            prev(speed);
                         });
 
                         var deltaBuffer = [120, 120, 120];
