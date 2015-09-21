@@ -38,13 +38,6 @@
                 }
             }
 
-            function wrapper() {
-                context = this;
-                args = arguments;
-                cancel();
-                timeout = $timeout(ping, wait);
-            }
-
             function flushPending() {
                 var pending = !!context;
                 if (pending) {
@@ -54,21 +47,28 @@
                 return pending;
             }
 
-            wrapper.flush = function() {
+            function debounceFn() {
+                context = this;
+                args = arguments;
+                cancel();
+                timeout = $timeout(ping, wait);
+            }
+
+            debounceFn.flush = function() {
                 if (!flushPending() && !timeout) {
                     ping();
                 }
                 return result;
             };
 
-            wrapper.flushPending = function() {
+            debounceFn.flushPending = function() {
                 flushPending();
                 return result;
             };
 
-            wrapper.cancel = cancel;
+            debounceFn.cancel = cancel;
 
-            return wrapper;
+            return debounceFn;
         };
     }]);
 
@@ -77,7 +77,15 @@
             return {
                 restrict: 'A',
                 transclude: true,
-                template: '<div class="scrollify__dummy"></div><div class="scrollify__container"><div class="scrollify__wrapper"><div class="scrollify__pane" ng-transclude></div></div></div>',
+                template: '' +
+                    '<div class="scrollify__dummy"></div>' +
+                    '<div class="scrollify__container">' +
+                    '    <div class="scrollify__wrapper">' +
+                    '        <div class="scrollify__slider">' +
+                    '            <div class="scrollify__pane" ng-transclude></div>' +
+                    '        </div>' +
+                    '    </div>' +
+                    '</div>',
                 compile: function(_element, _attr, linker) {
                     return function link(scope, element, attr) {
 
@@ -102,8 +110,8 @@
                             scrollBarModifier: 0.25, // length of container as a percentage of "real" length (prevents tiny handle on long pages)
                             wheelThrottle: 300,
                             scrollDebounce: 50,
-                            startIndex: false, // optional
                             touchEnabled: true,
+                            startIndex: false, // optional
                         };
 
                         if (attr.hjScrollifyOptions !== undefined) {
@@ -135,6 +143,7 @@
                         var dummy = angular.element(element[0].querySelector('.scrollify__dummy'));
                         var container = angular.element(element[0].querySelector('.scrollify__container'));
                         var wrapper = angular.element(element[0].querySelector('.scrollify__wrapper'));
+                        var slider = angular.element(element[0].querySelector('.scrollify__slider'));
                         var templatePane = angular.element(element[0].querySelector('.scrollify__pane'));
 
                         var list = [];
@@ -144,7 +153,7 @@
                         var preventScroll = false;
 
                         var buildPanes = function() {
-                            wrapper.children().remove();
+                            slider.children().remove();
 
                             for (var i = 0; i < list.length; i++) {
                                 var pane = {};
@@ -155,7 +164,7 @@
                                 linker(pane.scope, function(clone) {
                                     var paneClone = templatePane.clone();
                                     paneClone.children().replaceWith(clone);
-                                    wrapper.append(paneClone);
+                                    slider.append(paneClone);
                                     pane.element = paneClone;
                                 });
 
@@ -184,7 +193,7 @@
                                     currentPane: currentPane
                                 });
 
-                                moveWrapper(0);
+                                moveSlider(0);
                             });
                         };
 
@@ -217,7 +226,7 @@
                             if (list.length === 1) {
                                 return 0;
 
-                            } else if (typeof options.container === 'string' && options.container.toLowerCase() === 'window') {
+                            } else if (options.container === 'window') {
                                 return Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
 
                             } else {
@@ -244,14 +253,22 @@
 
                             debounceScrollToCurrent();
 
-                            if (typeof options.container === 'string' && options.container.toLowerCase() === 'window') {
-                                $window.scrollTo(0, ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane);
+                            var scrollY;
+
+                            if (options.container === 'window') {
+                                scrollY = ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane;
+
+                                $window.scrollTo(0, scrollY);
 
                             } else {
-                                element[0].scrollTop = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;
+                                scrollY = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;
+
+                                element[0].scrollTop = scrollY;
                             }
 
-                            moveWrapper(speed);
+                            container[0].style[prefixedTransform] = 'translateY(' + scrollY + 'px)';
+
+                            moveSlider(speed);
                         };
 
                         var setContainerHeight = function() {
@@ -266,18 +283,18 @@
 
                         var moveTimeout;
 
-                        var moveWrapper = function(transitionDuration) {
+                        var moveSlider = function(transitionDuration) {
                             transitionDuration = transitionDuration || 0;
 
                             // Kill previous transition (prevents skipping)
-                            wrapper[0].style[prefixedTransitionDuration] = '0ms';
+                            slider[0].style[prefixedTransitionDuration] = '0ms';
 
                             $timeout(function() {
-                                wrapper[0].style[prefixedTransitionDuration] = transitionDuration + 'ms';
+                                slider[0].style[prefixedTransitionDuration] = transitionDuration + 'ms';
 
-                                var wrapperY = -(currentPane * container[0].clientHeight);
+                                var sliderY = -(currentPane * wrapper[0].clientHeight);
 
-                                wrapper[0].style[prefixedTransform] = 'translateY(' + wrapperY + 'px)';
+                                slider[0].style[prefixedTransform] = 'translateY(' + sliderY + 'px)';
 
                                 $timeout.cancel(moveTimeout);
 
@@ -401,12 +418,23 @@
 
                             var speed = Math.round(Math.max(1, calcRoot(distance, options.scrollSpeedModifier))) * options.scrollSpeed;
 
-                            moveWrapper(speed);
+                            moveSlider(speed);
 
                             prevPane = null;
                         });
 
-                        var scroll = function() {
+                        var scroll = function(event) {
+                            var scrollY;
+
+                            if (options.container === 'window') {
+                                scrollY = $window.scrollY;
+
+                            } else {
+                                scrollY = element[0].scrollTop;
+                            }
+
+                            container[0].style[prefixedTransform] = 'translateY(' + scrollY + 'px)';
+
                             if (!preventScroll) {
                                 debounceScroll();
                             }
@@ -436,6 +464,7 @@
 
                             if (options.container === 'window') {
                                 angular.element($window).on('scroll', scroll);
+
                             } else {
                                 element.on('scroll', scroll);
                             }
@@ -477,16 +506,17 @@
                         scope.$on('$destroy', function() {
                             angular.element($window).off(resizeEvent, resize);
 
+                            element.off('mousewheel', wheelHandler);
+                            element.off('DOMMouseScroll', wheelHandler);
+
                             if (options.container === 'window') {
                                 angular.element($window).off('scroll', scroll);
+
                             } else {
                                 element.off('scroll', scroll);
                             }
 
                             $document.off('keydown', keyDown);
-
-                            element.off('mousewheel', wheelHandler);
-                            element.off('DOMMouseScroll', wheelHandler);
                         });
 
                     };
