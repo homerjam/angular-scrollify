@@ -313,6 +313,8 @@
                         };
 
                         var goTo = function(i, speed) {
+                            i = parseInt(i);
+
                             var _currentPane = currentPane;
 
                             if (setCurrentPane(i)) {
