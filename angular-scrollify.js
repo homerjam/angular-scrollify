@@ -116,6 +116,9 @@
 
                         if (attr.hjScrollifyOptions !== undefined) {
                             options = angular.extend(defaults, scope.$eval(attr.hjScrollifyOptions));
+
+                        } else {
+                            options = defaults;
                         }
 
                         var getPrefix = function(prop) {
