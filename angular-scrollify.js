@@ -457,18 +457,43 @@
 
             var hammer;
 
+            var preventPullRefresh = false;
+            var lastTouchY = 0;
+
             if (isTouch && options.touchEnabled) {
+              $document.on('touchstart', function(event) {
+                if (event.touches.length !== 1) {
+                  return;
+                }
+                lastTouchY = event.touches[0].clientY;
+                if ($window.pageYOffset === 0) {
+                  preventPullRefresh = true;
+                }
+              });
+
+              $document.on('touchmove', function(event) {
+                var touchY = event.touches[0].clientY;
+                var touchYDelta = touchY - lastTouchY;
+                lastTouchY = touchY;
+                if (preventPullRefresh) {
+                  preventPullRefresh = false;
+                  if (touchYDelta > 0) {
+                    event.preventDefault();
+                  }
+                }
+              });
+
               hammer = new Hammer(element[0]);
 
               hammer.get('swipe').set({
                 direction: Hammer.DIRECTION_ALL
               });
 
-              hammer.on('swipeup', function() {
+              hammer.on('swipeup', function(event) {
                 next();
               });
 
-              hammer.on('swipedown', function() {
+              hammer.on('swipedown', function(event) {
                 prev();
               });
             }
