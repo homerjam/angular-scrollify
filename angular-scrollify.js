@@ -1,4 +1,4 @@
-(function() {
+(function () {
   'use strict';
 
   var module = angular.module('hj.scrollify', []);
@@ -7,10 +7,10 @@
   module.constant('Lethargy', Lethargy);
   module.constant('Hammer', Hammer);
 
-  module.factory('throttle', function() {
+  module.factory('throttle', function () {
     var last = +new Date();
 
-    return function(delay, fn) {
+    return function (delay, fn) {
       var now = +new Date();
 
       if (now - last >= delay) {
@@ -20,8 +20,8 @@
     };
   });
 
-  module.factory('debounce', ['$timeout', function($timeout) {
-    return function(wait, fn) {
+  module.factory('debounce', ['$timeout', function ($timeout) {
+    return function (wait, fn) {
       /* jshint validthis:true */
 
       var args, context, result, timeout;
@@ -54,14 +54,14 @@
         timeout = $timeout(ping, wait);
       }
 
-      debounceFn.flush = function() {
+      debounceFn.flush = function () {
         if (!flushPending() && !timeout) {
           ping();
         }
         return result;
       };
 
-      debounceFn.flushPending = function() {
+      debounceFn.flushPending = function () {
         flushPending();
         return result;
       };
@@ -73,20 +73,20 @@
   }]);
 
   module.directive('hjScrollify', ['$window', '$document', '$timeout', '$log', 'throttle', 'debounce', 'Hamster', 'Lethargy', 'Hammer',
-    function($window, $document, $timeout, $log, throttle, debounce, Hamster, Lethargy, Hammer) {
+    function ($window, $document, $timeout, $log, throttle, debounce, Hamster, Lethargy, Hammer) {
       return {
         restrict: 'A',
         transclude: true,
         template: '' +
-          '<div class="scrollify__dummy"></div>' +
-          '<div class="scrollify__container">' +
-          '    <div class="scrollify__wrapper">' +
-          '        <div class="scrollify__slider">' +
-          '            <div class="scrollify__pane" ng-transclude></div>' +
-          '        </div>' +
-          '    </div>' +
-          '</div>',
-        compile: function(_element, _attr, linker) {
+        '<div class="scrollify__dummy"></div>' +
+        '<div class="scrollify__container">' +
+        '    <div class="scrollify__wrapper">' +
+        '        <div class="scrollify__slider">' +
+        '            <div class="scrollify__pane" ng-transclude></div>' +
+        '        </div>' +
+        '    </div>' +
+        '</div>',
+        compile: function (_element, _attr, linker) {
           return function link(scope, element, attr) {
 
             var expression = attr.hjScrollify;
@@ -121,7 +121,7 @@
               options = defaults;
             }
 
-            var getPrefix = function(prop) {
+            var getPrefix = function (prop) {
               var prefixes = ['Moz', 'Khtml', 'Webkit', 'O', 'ms'];
               var el = document.createElement('div');
               var upper = prop.charAt(0).toUpperCase() + prop.slice(1);
@@ -155,7 +155,7 @@
             var prevPane = null;
             var preventScroll = false;
 
-            var buildPanes = function() {
+            var buildPanes = function () {
               slider.children().remove();
 
               for (var i = 0; i < list.length; i++) {
@@ -164,7 +164,7 @@
                 pane.scope.$index = i;
                 panes.push(pane);
 
-                linker(pane.scope, function(clone) {
+                linker(pane.scope, function (clone) {
                   var paneClone = templatePane.clone();
                   paneClone.children().replaceWith(clone);
                   slider.append(paneClone);
@@ -183,12 +183,12 @@
               }
             };
 
-            var init = function() {
+            var init = function () {
               buildPanes();
 
               setContainerHeight();
 
-              $timeout(function() {
+              $timeout(function () {
                 currentPane = options.startIndex !== false ? options.startIndex : getCurrentPane();
 
                 scope.$emit('scrollify:init', {
@@ -200,7 +200,7 @@
               });
             };
 
-            scope.$watch(listIdentifier, function(_list) {
+            scope.$watch(listIdentifier, function (_list) {
               if (_list !== undefined) {
                 list = _list;
 
@@ -208,7 +208,7 @@
               }
             });
 
-            var setCurrentPane = function(i) {
+            var setCurrentPane = function (i) {
               var changeEvent = scope.$emit('scrollify:change', {
                 id: options.id,
                 index: i,
@@ -225,7 +225,7 @@
               }
             };
 
-            var getCurrentPane = function() {
+            var getCurrentPane = function () {
               if (list.length === 1) {
                 return 0;
 
@@ -237,17 +237,17 @@
               }
             };
 
-            var debounceScrollToCurrent = debounce(options.scrollSpeed, function() {
+            var debounceScrollToCurrent = debounce(options.scrollSpeed, function () {
               preventScroll = false;
             });
 
-            var calcRoot = function(x, factor) {
+            var calcRoot = function (x, factor) {
               factor = factor || 2;
               var y = Math.pow(Math.abs(x), 1 / factor);
               return x < 0 ? -y : y;
             };
 
-            var scrollToCurrent = function(speed) {
+            var scrollToCurrent = function (speed) {
               var distance = Math.max(1, Math.abs(prevPane - currentPane));
 
               speed = speed !== undefined ? speed : Math.round(Math.max(1, calcRoot(distance, options.scrollSpeedModifier))) * options.scrollSpeed;
@@ -276,7 +276,7 @@
               }
             };
 
-            var setContainerHeight = function() {
+            var setContainerHeight = function () {
               if (isTouch) {
                 dummy.css('display', 'none');
               }
@@ -288,13 +288,13 @@
 
             var moveTimeout;
 
-            var moveSlider = function(transitionDuration) {
+            var moveSlider = function (transitionDuration) {
               transitionDuration = transitionDuration || 0;
 
               // Kill previous transition (prevents skipping)
               slider[0].style[prefixedTransitionDuration] = '0ms';
 
-              $timeout(function() {
+              $timeout(function () {
                 slider[0].style[prefixedTransitionDuration] = transitionDuration + 'ms';
 
                 var sliderY = -(currentPane * wrapper[0].clientHeight);
@@ -303,7 +303,7 @@
 
                 $timeout.cancel(moveTimeout);
 
-                moveTimeout = $timeout(function() {
+                moveTimeout = $timeout(function () {
                   scope.$emit('scrollify:transitionEnd', {
                     id: defaults.id,
                     currentPane: currentPane
@@ -312,7 +312,7 @@
               });
             };
 
-            var goTo = function(i, speed) {
+            var goTo = function (i, speed) {
               i = parseInt(i);
 
               var _currentPane = currentPane;
@@ -324,13 +324,13 @@
               }
             };
 
-            var next = function(speed) {
+            var next = function (speed) {
               speed = speed !== undefined ? speed : options.scrollSpeed;
 
               goTo(currentPane < list.length - 1 ? currentPane + 1 : list.length - 1, speed);
             };
 
-            var prev = function(speed) {
+            var prev = function (speed) {
               speed = speed !== undefined ? speed : options.scrollSpeed;
 
               goTo(currentPane > 0 ? currentPane - 1 : currentPane, speed);
@@ -340,7 +340,7 @@
               goTo: goTo
             };
 
-            scope.$on('scrollify:goTo', function(event, obj) {
+            scope.$on('scrollify:goTo', function (event, obj) {
               if (obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -348,7 +348,7 @@
               goTo(obj.pane, obj.speed);
             });
 
-            scope.$on('scrollify:next', function(event, obj) {
+            scope.$on('scrollify:next', function (event, obj) {
               if (obj && obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -358,7 +358,7 @@
               next(speed);
             });
 
-            scope.$on('scrollify:prev', function(event, obj) {
+            scope.$on('scrollify:prev', function (event, obj) {
               if (obj && obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -370,7 +370,7 @@
 
             var deltaBuffer = [120, 120, 120];
 
-            var isTouchpad = function(deltaY) {
+            var isTouchpad = function (deltaY) {
               if (!deltaY) {
                 return;
               }
@@ -389,7 +389,7 @@
 
             var lethargy = new Lethargy();
 
-            var wheelHandler = function(event) {
+            var wheelHandler = function (event) {
               event = event.originalEvent || event;
 
               event.preventDefault();
@@ -398,7 +398,7 @@
                 return false;
               }
 
-              var touchPad = isTouchpad(event.wheelDeltaY || event.wheelDelta || 0);
+              var touchPad = isTouchpad(event.wheelDeltaY || event.wheelDelta || event.detail || 0);
 
               var deltaY;
 
@@ -410,7 +410,7 @@
               }
 
               if (deltaY !== false) {
-                throttle(options.wheelThrottle, function() {
+                throttle(options.wheelThrottle, function () {
                   prevPane = currentPane;
 
                   var pane = currentPane - deltaY;
@@ -422,7 +422,7 @@
               }
             };
 
-            var debounceScroll = debounce(defaults.scrollDebounce, function() {
+            var debounceScroll = debounce(defaults.scrollDebounce, function () {
               if (prevPane === null) {
                 prevPane = currentPane;
               }
@@ -438,7 +438,7 @@
               prevPane = null;
             });
 
-            var scroll = function(event) {
+            var scroll = function (event) {
               var scrollY;
 
               if (options.container === 'window') {
@@ -461,7 +461,7 @@
             var lastTouchY = 0;
 
             if (isTouch && options.touchEnabled) {
-              $document.on('touchstart', function(event) {
+              $document.on('touchstart', function (event) {
                 if (event.touches.length !== 1) {
                   return;
                 }
@@ -471,7 +471,7 @@
                 }
               });
 
-              $document.on('touchmove', function(event) {
+              $document.on('touchmove', function (event) {
                 var touchY = event.touches[0].clientY;
                 var touchYDelta = touchY - lastTouchY;
                 lastTouchY = touchY;
@@ -489,11 +489,11 @@
                 direction: Hammer.DIRECTION_ALL
               });
 
-              hammer.on('swipeup', function(event) {
+              hammer.on('swipeup', function (event) {
                 next();
               });
 
-              hammer.on('swipedown', function(event) {
+              hammer.on('swipedown', function (event) {
                 prev();
               });
             }
@@ -510,7 +510,7 @@
               }
             }
 
-            var keyDown = function(event) {
+            var keyDown = function (event) {
               switch (event.keyCode) {
                 case 40:
                   event.preventDefault();
@@ -525,11 +525,11 @@
 
             $document.on('keydown', keyDown);
 
-            var debounceResize = debounce(250, function() {
+            var debounceResize = debounce(250, function () {
               preventScroll = false;
             });
 
-            var resize = function() {
+            var resize = function () {
               preventScroll = true;
 
               debounceResize();
@@ -543,7 +543,7 @@
 
             angular.element($window).on(resizeEvent, resize);
 
-            scope.$on('$destroy', function() {
+            scope.$on('$destroy', function () {
               angular.element($window).off(resizeEvent, resize);
 
               element.off('mousewheel', wheelHandler);
@@ -566,4 +566,3 @@
   ]);
 
 })();
-
