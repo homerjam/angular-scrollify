@@ -115,7 +115,21 @@
             };
 
             if (attr.hjScrollifyOptions !== undefined) {
-              options = angular.extend(defaults, scope.$eval(attr.hjScrollifyOptions));
+              var origOptions = scope.$eval(attr.hjScrollifyOptions);
+
+              options = angular.extend(defaults, origOptions);
+
+              scope.$watch(function () {
+                var checkOptions = scope.$eval(attr.hjScrollifyOptions);
+
+                if (!angular.equals(origOptions, checkOptions)) {
+                  origOptions = checkOptions;
+                }
+
+                return origOptions;
+              }, function (newOptions) {
+                options = angular.extend(defaults, newOptions);
+              });
 
             } else {
               options = defaults;
