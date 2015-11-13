@@ -286,7 +286,7 @@
                   element[0].scrollTop = scrollY;
                 }
 
-                container[0].style[prefixedTransform] = 'translate3d(0px, ' + Math.round(scrollY) + 'px, 0px)';
+                container[0].style[prefixedTransform] = 'translate(0px, ' + Math.round(scrollY) + 'px)';
               }
             };
 
@@ -313,7 +313,7 @@
 
                 var sliderY = -(currentPane * wrapper[0].clientHeight);
 
-                slider[0].style[prefixedTransform] = 'translate3d(0px, ' + sliderY + 'px, 0px)';
+                slider[0].style[prefixedTransform] = 'translate(0px, ' + sliderY + 'px)';
 
                 $timeout.cancel(moveTimeout);
 
@@ -462,7 +462,7 @@
                 scrollY = element[0].scrollTop;
               }
 
-              container[0].style[prefixedTransform] = 'translate3d(0px, ' + scrollY + 'px, 0px)';
+              container[0].style[prefixedTransform] = 'translate(0px, ' + scrollY + 'px)';
 
               if (!preventScroll) {
                 debounceScroll();
