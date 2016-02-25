@@ -1,21 +1,19 @@
 {
   "name": "hamsterjs",
-  "version": "1.1.2",
   "main": "hamster.js",
   "ignore": [
     "**/.*",
     "node_modules",
     "components"
   ],
-  "homepage": "https://github.com/monospaced/hamster.js",
-  "_release": "1.1.2",
+  "homepage": "https://github.com/homerjam/hamster.js",
+  "_release": "99833e814a",
   "_resolution": {
-    "type": "version",
-    "tag": "v1.1.2",
-    "commit": "546a574a897491c95b39d9675f3792f84fa94144"
+    "type": "branch",
+    "branch": "umd",
+    "commit": "99833e814ab8c2b1cad1d2a6bc614b440677069d"
   },
-  "_source": "git://github.com/monospaced/hamster.js.git",
-  "_target": "~1.1.2",
-  "_originalSource": "hamsterjs",
-  "_direct": true
+  "_source": "git://github.com/homerjam/hamster.js.git",
+  "_target": "umd",
+  "_originalSource": "homerjam/hamster.js"
 }
