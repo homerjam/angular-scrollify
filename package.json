@@ -1,0 +1,21 @@
+{
+  "name": "angular-scrollify",
+  "version": "0.2.0",
+  "description": "Angular directive that snaps to panes on scroll",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/homerjam/angular-scrollify"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Homerjam <jameshomer85@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "angular": "^1.5.0",
+    "hammerjs": "^2.0.6",
+    "hamsterjs": "homerjam/hamster.js#umd",
+    "lethargy": "homerjam/lethargy#umd"
+  }
+}

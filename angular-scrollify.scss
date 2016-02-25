@@ -1,0 +1,40 @@
+.scrollify {
+
+	&__dummy {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+	}
+
+	&__container {
+		position: fixed;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		overflow: hidden;
+		will-change: transform;
+		backface-visibility: hidden;
+		transform: none !important;
+	}
+
+	&__wrapper {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+	}
+
+  &__slider {
+    transition-timing-function: cubic-bezier(0.860, 0.000, 0.070, 1.000);
+  }
+
+	&__pane {
+		position: relative;
+		width: 100%;
+		height: 100vh;
+		content: "viewport-units-buggyfill; height: 100vh;";
+	}
+
+}

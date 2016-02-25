@@ -3,10 +3,6 @@
 
   var module = angular.module('hj.scrollify', []);
 
-  module.constant('Hamster', Hamster);
-  module.constant('Lethargy', Lethargy);
-  module.constant('Hammer', Hammer);
-
   module.factory('throttle', function () {
     var last = +new Date();
 
@@ -24,21 +20,24 @@
     return function (wait, fn) {
       /* jshint validthis:true */
 
-      var args, context, result, timeout;
+      var args;
+      var context;
+      var result;
+      var timeout;
 
-      function ping() {
+      function ping () {
         result = fn.apply(context || this, args || []);
         context = args = null;
       }
 
-      function cancel() {
+      function cancel () {
         if (timeout) {
           $timeout.cancel(timeout);
           timeout = null;
         }
       }
 
-      function flushPending() {
+      function flushPending () {
         var pending = !!context;
         if (pending) {
           cancel();
@@ -47,7 +46,7 @@
         return pending;
       }
 
-      function debounceFn() {
+      function debounceFn () {
         context = this;
         args = arguments;
         cancel();
@@ -72,26 +71,26 @@
     };
   }]);
 
-  module.directive('hjScrollify', ['$window', '$document', '$timeout', '$log', 'throttle', 'debounce', 'Hamster', 'Lethargy', 'Hammer',
-    function ($window, $document, $timeout, $log, throttle, debounce, Hamster, Lethargy, Hammer) {
+  module.directive('hjScrollify', ['$window', '$document', '$timeout', '$log', 'throttle', 'debounce',
+    function ($window, $document, $timeout, $log, throttle, debounce) {
       return {
         restrict: 'A',
         transclude: true,
         template: '' +
-        '<div class="scrollify__dummy"></div>' +
-        '<div class="scrollify__container">' +
-        '    <div class="scrollify__wrapper">' +
-        '        <div class="scrollify__slider">' +
-        '            <div class="scrollify__pane" ng-transclude></div>' +
-        '        </div>' +
-        '    </div>' +
-        '</div>',
+          '<div class="scrollify__dummy"></div>' +
+          '<div class="scrollify__container">' +
+          '    <div class="scrollify__wrapper">' +
+          '        <div class="scrollify__slider">' +
+          '            <div class="scrollify__pane" ng-transclude></div>' +
+          '        </div>' +
+          '    </div>' +
+          '</div>',
         compile: function (_element, _attr, linker) {
-          return function link(scope, element, attr) {
-
-            var expression = attr.hjScrollify;
+          return function link ($scope, $element, $attrs) {
+            var expression = $attrs.hjScrollify;
             var match = expression.match(/^\s*(.+)\s+in\s+(.*?)\s*$/);
-            var valueIdentifier, listIdentifier;
+            var valueIdentifier;
+            var listIdentifier;
 
             if (!match) {
               $log.error('Expected hjScrollify in form of "_item_ in _array_" but got "' + expression + '".');
@@ -114,13 +113,13 @@
               startIndex: false, // optional
             };
 
-            if (attr.hjScrollifyOptions !== undefined) {
-              var origOptions = scope.$eval(attr.hjScrollifyOptions);
+            if ($attrs.hjScrollifyOptions !== undefined) {
+              var origOptions = $scope.$eval($attrs.hjScrollifyOptions);
 
               options = angular.extend(defaults, origOptions);
 
-              scope.$watch(function () {
-                var checkOptions = scope.$eval(attr.hjScrollifyOptions);
+              $scope.$watch(function () {
+                var checkOptions = $scope.$eval($attrs.hjScrollifyOptions);
 
                 if (!angular.equals(origOptions, checkOptions)) {
                   origOptions = checkOptions;
@@ -157,11 +156,13 @@
             var prefixedTransform = getPrefix('transform');
             var prefixedTransitionDuration = getPrefix('transitionDuration');
 
-            var dummy = angular.element(element[0].querySelector('.scrollify__dummy'));
-            var container = angular.element(element[0].querySelector('.scrollify__container'));
-            var wrapper = angular.element(element[0].querySelector('.scrollify__wrapper'));
-            var slider = angular.element(element[0].querySelector('.scrollify__slider'));
-            var templatePane = angular.element(element[0].querySelector('.scrollify__pane'));
+            var scrollifyEl = $element[0];
+            var container = scrollifyEl.querySelector('.scrollify__container');
+            var dummy = scrollifyEl.querySelector('.scrollify__dummy');
+            var wrapper = scrollifyEl.querySelector('.scrollify__wrapper');
+            var slider = scrollifyEl.querySelector('.scrollify__slider');
+            var $slider = angular.element(slider);
+            var $templatePane = angular.element(scrollifyEl.querySelector('.scrollify__pane'));
 
             var list = [];
             var panes = [];
@@ -170,73 +171,51 @@
             var preventScroll = false;
 
             var buildPanes = function () {
-              slider.children().remove();
+              $slider.children().remove();
 
               for (var i = 0; i < list.length; i++) {
                 var pane = {};
-                pane.scope = scope.$new();
-                pane.scope.$index = i;
+                pane.$scope = $scope.$new();
+                pane.$scope.$index = i;
                 panes.push(pane);
 
-                linker(pane.scope, function (clone) {
-                  var paneClone = templatePane.clone();
+                linker(pane.$scope, function (clone) {
+                  var paneClone = $templatePane.clone();
                   paneClone.children().replaceWith(clone);
-                  slider.append(paneClone);
-                  pane.element = paneClone;
+                  $slider.append(paneClone);
+                  pane.$element = paneClone;
                 });
 
-                angular.element(pane.element).attr('data-index', i);
+                angular.element(pane.$element).attr('data-index', i);
               }
 
               for (i = 0; i < list.length; i++) {
-                panes[i].scope[valueIdentifier] = list[i];
+                panes[i].$scope[valueIdentifier] = list[i];
 
-                if (!panes[i].scope.$$phase) {
-                  panes[i].scope.$apply();
+                if (panes[i].$scope.$$phase === false) {
+                  panes[i].$scope.$apply();
                 }
               }
             };
 
-            var init = function () {
-              buildPanes();
-
-              setContainerHeight();
-
-              $timeout(function () {
-                currentPane = options.startIndex !== false ? options.startIndex : getCurrentPane();
-
-                scope.$emit('scrollify:init', {
-                  id: options.id,
-                  currentPane: currentPane
-                });
-
-                moveSlider(0);
-              });
-            };
-
-            scope.$watch(listIdentifier, function (_list) {
-              if (_list !== undefined) {
-                list = _list;
-
-                init();
-              }
-            });
-
             var setCurrentPane = function (i) {
-              var changeEvent = scope.$emit('scrollify:change', {
+              if (!panes[i]) {
+                return false;
+              }
+
+              var changeEvent = $scope.$emit('scrollify:change', {
                 id: options.id,
                 index: i,
-                data: panes[i].scope[valueIdentifier],
+                data: panes[i].$scope[valueIdentifier],
               });
 
               if (changeEvent.defaultPrevented) {
                 return false;
-
-              } else {
-                currentPane = i;
-
-                return true;
               }
+
+              currentPane = i;
+
+              return true;
             };
 
             var getCurrentPane = function () {
@@ -244,11 +223,37 @@
                 return 0;
 
               } else if (options.container === 'window') {
-                return Math.round((list.length - 1) * ($window.scrollY / (dummy[0].scrollHeight - $window.innerHeight)));
+                return Math.round((list.length - 1) * ($window.scrollY / (dummy.scrollHeight - $window.innerHeight)));
 
               } else {
-                return Math.round((list.length - 1) * (element[0].scrollTop / (dummy[0].scrollHeight - element[0].clientHeight)));
+                return Math.round((list.length - 1) * (scrollifyEl.scrollTop / (dummy.scrollHeight - scrollifyEl.clientHeight)));
               }
+            };
+
+            var moveTimeout;
+
+            var moveSlider = function (transitionDuration) {
+              transitionDuration = transitionDuration || 0;
+
+              // Kill previous transition (prevents skipping)
+              slider.style[prefixedTransitionDuration] = '0ms';
+
+              $timeout(function () {
+                slider.style[prefixedTransitionDuration] = transitionDuration + 'ms';
+
+                var sliderY = -(currentPane * wrapper.clientHeight);
+
+                slider.style[prefixedTransform] = 'translate(0px, ' + sliderY + 'px)';
+
+                $timeout.cancel(moveTimeout);
+
+                moveTimeout = $timeout(function () {
+                  $scope.$emit('scrollify:transitionEnd', {
+                    id: defaults.id,
+                    currentPane: currentPane,
+                  });
+                }, transitionDuration);
+              });
             };
 
             var debounceScrollToCurrent = debounce(options.scrollSpeed, function () {
@@ -276,58 +281,57 @@
                 var scrollY;
 
                 if (options.container === 'window') {
-                  scrollY = ((dummy[0].scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane;
+                  scrollY = ((dummy.scrollHeight - $window.innerHeight) / (list.length - 1)) * currentPane;
 
                   $window.scrollTo(0, scrollY);
 
                 } else {
-                  scrollY = ((dummy[0].scrollHeight - element[0].clientHeight) / (list.length - 1)) * currentPane;
+                  scrollY = ((dummy.scrollHeight - scrollifyEl.clientHeight) / (list.length - 1)) * currentPane;
 
-                  element[0].scrollTop = scrollY;
+                  scrollifyEl.scrollTop = scrollY;
                 }
 
-                container[0].style[prefixedTransform] = 'translate(0px, ' + Math.round(scrollY) + 'px)';
+                container.style[prefixedTransform] = 'translate(0px, ' + Math.round(scrollY) + 'px)';
               }
             };
 
             var setContainerHeight = function () {
               if (isTouch) {
-                dummy.css('display', 'none');
+                angular.element(dummy).css('display', 'none');
               }
 
               if (!isTouch) {
-                dummy.css('height', Math.max(200, (list.length * options.scrollBarModifier) * 100) + '%');
+                angular.element(dummy).css('height', Math.max(200, (list.length * options.scrollBarModifier) * 100) + '%');
               }
             };
 
-            var moveTimeout;
+            var init = function () {
+              buildPanes();
 
-            var moveSlider = function (transitionDuration) {
-              transitionDuration = transitionDuration || 0;
-
-              // Kill previous transition (prevents skipping)
-              slider[0].style[prefixedTransitionDuration] = '0ms';
+              setContainerHeight();
 
               $timeout(function () {
-                slider[0].style[prefixedTransitionDuration] = transitionDuration + 'ms';
+                currentPane = options.startIndex !== false ? options.startIndex : getCurrentPane();
 
-                var sliderY = -(currentPane * wrapper[0].clientHeight);
+                $scope.$emit('scrollify:init', {
+                  id: options.id,
+                  currentPane: currentPane,
+                });
 
-                slider[0].style[prefixedTransform] = 'translate(0px, ' + sliderY + 'px)';
-
-                $timeout.cancel(moveTimeout);
-
-                moveTimeout = $timeout(function () {
-                  scope.$emit('scrollify:transitionEnd', {
-                    id: defaults.id,
-                    currentPane: currentPane
-                  });
-                }, transitionDuration);
+                moveSlider(0);
               });
             };
 
+            $scope.$watch(listIdentifier, function (_list) {
+              if (_list !== undefined) {
+                list = _list;
+
+                init();
+              }
+            });
+
             var goTo = function (i, speed) {
-              i = parseInt(i);
+              i = parseInt(i, 10);
 
               var _currentPane = currentPane;
 
@@ -350,11 +354,11 @@
               goTo(currentPane > 0 ? currentPane - 1 : currentPane, speed);
             };
 
-            scope.$scrollify = {
-              goTo: goTo
+            $scope.$scrollify = {
+              goTo: goTo,
             };
 
-            scope.$on('scrollify:goTo', function (event, obj) {
+            $scope.$on('scrollify:goTo', function (event, obj) {
               if (obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -362,7 +366,7 @@
               goTo(obj.pane, obj.speed);
             });
 
-            scope.$on('scrollify:next', function (event, obj) {
+            $scope.$on('scrollify:next', function (event, obj) {
               if (obj && obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -372,7 +376,7 @@
               next(speed);
             });
 
-            scope.$on('scrollify:prev', function (event, obj) {
+            $scope.$on('scrollify:prev', function (event, obj) {
               if (obj && obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -383,6 +387,10 @@
             });
 
             var deltaBuffer = [120, 120, 120];
+
+            var isDivisible = function isDivisible (n, divisor) {
+              return (Math.floor(n / divisor) === n / divisor);
+            };
 
             var isTouchpad = function (deltaY) {
               if (!deltaY) {
@@ -395,10 +403,6 @@
                 isDivisible(deltaBuffer[1], 120) &&
                 isDivisible(deltaBuffer[2], 120));
               return !allDivisable;
-            };
-
-            var isDivisible = function isDivisible(n, divisor) {
-              return (Math.floor(n / divisor) === n / divisor);
             };
 
             var lethargy = new Lethargy();
@@ -459,10 +463,10 @@
                 scrollY = $window.scrollY;
 
               } else {
-                scrollY = element[0].scrollTop;
+                scrollY = scrollifyEl.scrollTop;
               }
 
-              container[0].style[prefixedTransform] = 'translate(0px, ' + scrollY + 'px)';
+              container.style[prefixedTransform] = 'translate(0px, ' + scrollY + 'px)';
 
               if (!preventScroll) {
                 debounceScroll();
@@ -497,10 +501,10 @@
                 }
               });
 
-              hammer = new Hammer(element[0]);
+              hammer = new Hammer(scrollifyEl);
 
               hammer.get('swipe').set({
-                direction: Hammer.DIRECTION_ALL
+                direction: Hammer.DIRECTION_ALL,
               });
 
               hammer.on('swipeup', function (event) {
@@ -513,27 +517,28 @@
             }
 
             if (!isTouch) {
-              element.on('mousewheel', wheelHandler);
-              element.on('DOMMouseScroll', wheelHandler);
+              $element.on('mousewheel', wheelHandler);
+              $element.on('DOMMouseScroll', wheelHandler);
 
               if (options.container === 'window') {
                 angular.element($window).on('scroll', scroll);
 
               } else {
-                element.on('scroll', scroll);
+                $element.on('scroll', scroll);
               }
             }
 
             var keyDown = function (event) {
-              switch (event.keyCode) {
-                case 40:
-                  event.preventDefault();
-                  next();
-                  break;
-                case 38:
-                  event.preventDefault();
-                  prev();
-                  break;
+              if (event.keyCode === 40 || event.keyCode === 38) {
+                event.preventDefault();
+              }
+
+              if (event.keyCode === 40) {
+                next();
+              }
+
+              if (event.keyCode === 38) {
+                prev();
               }
             };
 
@@ -557,26 +562,26 @@
 
             angular.element($window).on(resizeEvent, resize);
 
-            scope.$on('$destroy', function () {
+            $scope.$on('$destroy', function () {
               angular.element($window).off(resizeEvent, resize);
 
-              element.off('mousewheel', wheelHandler);
-              element.off('DOMMouseScroll', wheelHandler);
+              $element.off('mousewheel', wheelHandler);
+              $element.off('DOMMouseScroll', wheelHandler);
 
               if (options.container === 'window') {
                 angular.element($window).off('scroll', scroll);
 
               } else {
-                element.off('scroll', scroll);
+                $element.off('scroll', scroll);
               }
 
               $document.off('keydown', keyDown);
             });
 
           };
-        }
+        },
       };
-    }
+    },
   ]);
 
 })();

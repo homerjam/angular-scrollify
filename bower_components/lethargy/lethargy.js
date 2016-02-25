@@ -10,11 +10,6 @@
       this.sensitivity = sensitivity != null ? 1 + Math.abs(sensitivity) : 100;
       this.tolerance = tolerance != null ? 1 + Math.abs(tolerance) : 1.1;
       this.delay = delay != null ? delay : 150;
-
-      this.reset();
-    }
-
-    Lethargy.prototype.reset = function() {
       this.lastUpDeltas = (function() {
         var i, ref, results;
         results = [];
@@ -38,8 +33,8 @@
           results.push(null);
         }
         return results;
-      }).call(this);      
-    };
+      }).call(this);
+    }
 
     Lethargy.prototype.check = function(e) {
       var lastDelta;
@@ -72,7 +67,6 @@
         return direction;
       }
       if (this.deltasTimestamp[(this.stability * 2) - 2] + this.delay > Date.now() && lastDeltas[0] === lastDeltas[(this.stability * 2) - 1]) {
-        // this.reset();
         return false;
       }
       lastDeltasOld = lastDeltas.slice(0, this.stability);

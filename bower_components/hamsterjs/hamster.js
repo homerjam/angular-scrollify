@@ -1,5 +1,5 @@
 /*
- * Hamster.js v1.0.5
+ * Hamster.js v1.1.2
  * (c) 2013 Monospaced http://monospaced.com
  * License: MIT
  */
@@ -286,6 +286,11 @@ Hamster.normalise = {
       delta = originalEvent.detail * -1;
     }
 
+    // Don't return NaN
+    if (delta === 0) {
+      return [0, 0, 0];
+    }
+
     // look for lowest delta to normalize the delta values
     absDelta = Math.abs(delta);
     if (!lowestDelta || absDelta < lowestDelta) {
@@ -306,14 +311,17 @@ Hamster.normalise = {
   }
 };
 
-// Expose Hamster to the global object
-window.Hamster = Hamster;
-
-// requireJS module definition
 if (typeof window.define === 'function' && window.define.amd) {
+  // AMD
   window.define('hamster', [], function(){
     return Hamster;
   });
+} else if (typeof exports === 'object') {
+  // CommonJS
+  module.exports = Hamster;
+} else {
+  // Browser global
+  window.Hamster = Hamster;
 }
 
 })(window, window.document);
