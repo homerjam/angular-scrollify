@@ -110,6 +110,7 @@
               wheelThrottle: 300,
               scrollDebounce: 50,
               touchEnabled: true,
+              fixedPosition: false,
               startIndex: false, // optional
             };
 
@@ -169,6 +170,10 @@
             var currentPane;
             var prevPane = null;
             var preventScroll = false;
+
+            if (options.fixedPositon) {
+              angular.element(container).addClass('scrollify__container--fixed');
+            }
 
             var buildPanes = function () {
               $slider.children().remove();

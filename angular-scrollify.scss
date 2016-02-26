@@ -7,7 +7,6 @@
 	}
 
 	&__container {
-		position: fixed;
 		left: 0;
 		right: 0;
 		top: 0;
@@ -15,7 +14,11 @@
 		overflow: hidden;
 		will-change: transform;
 		backface-visibility: hidden;
-		transform: none !important;
+
+    &--fixed {
+      position: fixed;
+      transform: none !important;
+    }
 	}
 
 	&__wrapper {
