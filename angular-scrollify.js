@@ -415,6 +415,10 @@
             var wheelHandler = function (event) {
               event = event.originalEvent || event;
 
+              if (!event.originalEvent) {
+                event.originalEvent = event;
+              }
+
               event.preventDefault();
 
               if (event.deltaY === -0) {
