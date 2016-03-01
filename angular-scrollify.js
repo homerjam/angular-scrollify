@@ -296,7 +296,9 @@
                   scrollifyEl.scrollTop = scrollY;
                 }
 
-                container.style[prefixedTransform] = 'translate(0px, ' + Math.round(scrollY) + 'px)';
+                if (!options.fixedPositon) {
+                  container.style[prefixedTransform] = 'translate(0px, ' + Math.round(scrollY) + 'px)';
+                }
               }
             };
 
@@ -324,6 +326,8 @@
                 });
 
                 moveSlider(0);
+
+                scrollToCurrent(0);
               });
             };
 
@@ -475,7 +479,9 @@
                 scrollY = scrollifyEl.scrollTop;
               }
 
-              container.style[prefixedTransform] = 'translate(0px, ' + scrollY + 'px)';
+              if (!options.fixedPositon) {
+                container.style[prefixedTransform] = 'translate(0px, ' + scrollY + 'px)';
+              }
 
               if (!preventScroll) {
                 debounceScroll();
@@ -540,14 +546,22 @@
             var keyDown = function (event) {
               if (event.keyCode === 40 || event.keyCode === 38) {
                 event.preventDefault();
+
+                if (event.keyCode === 40) {
+                  next();
+                }
+
+                if (event.keyCode === 38) {
+                  prev();
+                }
               }
 
-              if (event.keyCode === 40) {
-                next();
-              }
-
-              if (event.keyCode === 38) {
-                prev();
+              if (event.keyCode === 9) {
+                // Hack to force redraw after changing focus to off screen element
+                wrapper.style.display = 'none';
+                $timeout(function () {
+                  wrapper.style.display = 'block';
+                });
               }
             };
 
