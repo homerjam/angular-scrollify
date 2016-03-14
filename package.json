@@ -1,6 +1,6 @@
 {
   "name": "angular-scrollify",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Angular directive that snaps to panes on scroll",
   "main": "index.js",
   "repository": {
@@ -15,7 +15,7 @@
   "dependencies": {
     "angular": "^1.5.0",
     "hammerjs": "^2.0.6",
-    "hamsterjs": "homerjam/hamster.js#umd",
+    "hamsterjs": "^1.1.2",
     "lethargy": "homerjam/lethargy#umd"
   }
 }

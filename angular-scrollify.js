@@ -1,12 +1,12 @@
-(function () {
+(function() {
   'use strict';
 
   var module = angular.module('hj.scrollify', []);
 
-  module.factory('throttle', function () {
+  module.factory('throttle', function() {
     var last = +new Date();
 
-    return function (delay, fn) {
+    return function(delay, fn) {
       var now = +new Date();
 
       if (now - last >= delay) {
@@ -16,8 +16,8 @@
     };
   });
 
-  module.factory('debounce', ['$timeout', function ($timeout) {
-    return function (wait, fn) {
+  module.factory('debounce', ['$timeout', function($timeout) {
+    return function(wait, fn) {
       /* jshint validthis:true */
 
       var args;
@@ -25,19 +25,19 @@
       var result;
       var timeout;
 
-      function ping () {
+      function ping() {
         result = fn.apply(context || this, args || []);
         context = args = null;
       }
 
-      function cancel () {
+      function cancel() {
         if (timeout) {
           $timeout.cancel(timeout);
           timeout = null;
         }
       }
 
-      function flushPending () {
+      function flushPending() {
         var pending = !!context;
         if (pending) {
           cancel();
@@ -46,21 +46,21 @@
         return pending;
       }
 
-      function debounceFn () {
+      function debounceFn() {
         context = this;
         args = arguments;
         cancel();
         timeout = $timeout(ping, wait);
       }
 
-      debounceFn.flush = function () {
+      debounceFn.flush = function() {
         if (!flushPending() && !timeout) {
           ping();
         }
         return result;
       };
 
-      debounceFn.flushPending = function () {
+      debounceFn.flushPending = function() {
         flushPending();
         return result;
       };
@@ -72,21 +72,21 @@
   }]);
 
   module.directive('hjScrollify', ['$window', '$document', '$timeout', '$log', 'throttle', 'debounce',
-    function ($window, $document, $timeout, $log, throttle, debounce) {
+    function($window, $document, $timeout, $log, throttle, debounce) {
       return {
         restrict: 'A',
         transclude: true,
         template: '' +
-          '<div class="scrollify__dummy"></div>' +
-          '<div class="scrollify__container">' +
-          '    <div class="scrollify__wrapper">' +
-          '        <div class="scrollify__slider">' +
-          '            <div class="scrollify__pane" ng-transclude></div>' +
-          '        </div>' +
-          '    </div>' +
-          '</div>',
-        compile: function (_element, _attr, linker) {
-          return function link ($scope, $element, $attrs) {
+        '<div class="scrollify__dummy"></div>' +
+        '<div class="scrollify__container">' +
+        '    <div class="scrollify__wrapper">' +
+        '        <div class="scrollify__slider">' +
+        '            <div class="scrollify__pane" ng-transclude></div>' +
+        '        </div>' +
+        '    </div>' +
+        '</div>',
+        compile: function(_element, _attr, linker) {
+          return function link($scope, $element, $attrs) {
             var expression = $attrs.hjScrollify;
             var match = expression.match(/^\s*(.+)\s+in\s+(.*?)\s*$/);
             var valueIdentifier;
@@ -111,6 +111,7 @@
               scrollDebounce: 50,
               touchEnabled: true,
               fixedPosition: false,
+              initDelay: 0,
               startIndex: false, // optional
             };
 
@@ -119,7 +120,7 @@
 
               options = angular.extend(defaults, origOptions);
 
-              $scope.$watch(function () {
+              $scope.$watch(function() {
                 var checkOptions = $scope.$eval($attrs.hjScrollifyOptions);
 
                 if (!angular.equals(origOptions, checkOptions)) {
@@ -127,7 +128,7 @@
                 }
 
                 return origOptions;
-              }, function (newOptions) {
+              }, function(newOptions) {
                 options = angular.extend(defaults, newOptions);
               });
 
@@ -135,7 +136,7 @@
               options = defaults;
             }
 
-            var getPrefix = function (prop) {
+            var getPrefix = function(prop) {
               var prefixes = ['Moz', 'Khtml', 'Webkit', 'O', 'ms'];
               var el = document.createElement('div');
               var upper = prop.charAt(0).toUpperCase() + prop.slice(1);
@@ -175,7 +176,7 @@
               angular.element(container).addClass('scrollify__container--fixed');
             }
 
-            var buildPanes = function () {
+            var buildPanes = function() {
               $slider.children().remove();
 
               for (var i = 0; i < list.length; i++) {
@@ -184,7 +185,7 @@
                 pane.$scope.$index = i;
                 panes.push(pane);
 
-                linker(pane.$scope, function (clone) {
+                linker(pane.$scope, function(clone) {
                   var paneClone = $templatePane.clone();
                   paneClone.children().replaceWith(clone);
                   $slider.append(paneClone);
@@ -203,7 +204,7 @@
               }
             };
 
-            var setCurrentPane = function (i) {
+            var setCurrentPane = function(i) {
               if (!panes[i]) {
                 return false;
               }
@@ -223,7 +224,7 @@
               return true;
             };
 
-            var getCurrentPane = function () {
+            var getCurrentPane = function() {
               if (list.length === 1) {
                 return 0;
 
@@ -237,13 +238,13 @@
 
             var moveTimeout;
 
-            var moveSlider = function (transitionDuration) {
+            var moveSlider = function(transitionDuration) {
               transitionDuration = transitionDuration || 0;
 
               // Kill previous transition (prevents skipping)
               slider.style[prefixedTransitionDuration] = '0ms';
 
-              $timeout(function () {
+              $timeout(function() {
                 slider.style[prefixedTransitionDuration] = transitionDuration + 'ms';
 
                 var sliderY = -(currentPane * wrapper.clientHeight);
@@ -252,7 +253,7 @@
 
                 $timeout.cancel(moveTimeout);
 
-                moveTimeout = $timeout(function () {
+                moveTimeout = $timeout(function() {
                   $scope.$emit('scrollify:transitionEnd', {
                     id: defaults.id,
                     currentPane: currentPane,
@@ -261,17 +262,17 @@
               });
             };
 
-            var debounceScrollToCurrent = debounce(options.scrollSpeed, function () {
+            var debounceScrollToCurrent = debounce(options.scrollSpeed, function() {
               preventScroll = false;
             });
 
-            var calcRoot = function (x, factor) {
+            var calcRoot = function(x, factor) {
               factor = factor || 2;
               var y = Math.pow(Math.abs(x), 1 / factor);
               return x < 0 ? -y : y;
             };
 
-            var scrollToCurrent = function (speed) {
+            var scrollToCurrent = function(speed) {
               var distance = Math.max(1, Math.abs(prevPane - currentPane));
 
               speed = speed !== undefined ? speed : Math.round(Math.max(1, calcRoot(distance, options.scrollSpeedModifier))) * options.scrollSpeed;
@@ -302,7 +303,7 @@
               }
             };
 
-            var setContainerHeight = function () {
+            var setContainerHeight = function() {
               if (isTouch) {
                 angular.element(dummy).css('display', 'none');
               }
@@ -312,34 +313,7 @@
               }
             };
 
-            var init = function () {
-              buildPanes();
-
-              setContainerHeight();
-
-              $timeout(function () {
-                currentPane = options.startIndex !== false ? options.startIndex : getCurrentPane();
-
-                $scope.$emit('scrollify:init', {
-                  id: options.id,
-                  currentPane: currentPane,
-                });
-
-                moveSlider(0);
-
-                scrollToCurrent(0);
-              });
-            };
-
-            $scope.$watch(listIdentifier, function (_list) {
-              if (_list !== undefined) {
-                list = _list;
-
-                init();
-              }
-            });
-
-            var goTo = function (i, speed) {
+            var goTo = function(i, speed) {
               i = parseInt(i, 10);
 
               var _currentPane = currentPane;
@@ -351,13 +325,13 @@
               }
             };
 
-            var next = function (speed) {
+            var next = function(speed) {
               speed = speed !== undefined ? speed : options.scrollSpeed;
 
               goTo(currentPane < list.length - 1 ? currentPane + 1 : list.length - 1, speed);
             };
 
-            var prev = function (speed) {
+            var prev = function(speed) {
               speed = speed !== undefined ? speed : options.scrollSpeed;
 
               goTo(currentPane > 0 ? currentPane - 1 : currentPane, speed);
@@ -367,7 +341,7 @@
               goTo: goTo,
             };
 
-            $scope.$on('scrollify:goTo', function (event, obj) {
+            $scope.$on('scrollify:goTo', function(event, obj) {
               if (obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -375,7 +349,7 @@
               goTo(obj.pane, obj.speed);
             });
 
-            $scope.$on('scrollify:next', function (event, obj) {
+            $scope.$on('scrollify:next', function(event, obj) {
               if (obj && obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -385,7 +359,7 @@
               next(speed);
             });
 
-            $scope.$on('scrollify:prev', function (event, obj) {
+            $scope.$on('scrollify:prev', function(event, obj) {
               if (obj && obj.id && options.id !== obj.id) {
                 return false;
               }
@@ -395,13 +369,23 @@
               prev(speed);
             });
 
+            $scope.$on('scrollify:scrollToCurrent', function(event, obj) {
+              if (obj && obj.id && options.id !== obj.id) {
+                return false;
+              }
+
+              var speed = obj && obj.speed;
+
+              scrollToCurrent(speed || 0);
+            });
+
             var deltaBuffer = [120, 120, 120];
 
-            var isDivisible = function isDivisible (n, divisor) {
+            var isDivisible = function isDivisible(n, divisor) {
               return (Math.floor(n / divisor) === n / divisor);
             };
 
-            var isTouchpad = function (deltaY) {
+            var isTouchpad = function(deltaY) {
               if (!deltaY) {
                 return;
               }
@@ -416,7 +400,7 @@
 
             var lethargy = new Lethargy();
 
-            var wheelHandler = function (event) {
+            var wheelHandler = function(event) {
               event = event.originalEvent || event;
 
               if (!event.originalEvent) {
@@ -441,7 +425,7 @@
               }
 
               if (deltaY !== false) {
-                throttle(options.wheelThrottle, function () {
+                throttle(options.wheelThrottle, function() {
                   prevPane = currentPane;
 
                   var pane = currentPane - deltaY;
@@ -453,7 +437,7 @@
               }
             };
 
-            var debounceScroll = debounce(defaults.scrollDebounce, function () {
+            var debounceScroll = debounce(defaults.scrollDebounce, function() {
               if (prevPane === null) {
                 prevPane = currentPane;
               }
@@ -469,7 +453,7 @@
               prevPane = null;
             });
 
-            var scroll = function (event) {
+            var scrollHandler = function(event) {
               var scrollY;
 
               if (options.container === 'window') {
@@ -488,62 +472,7 @@
               }
             };
 
-            var hammer;
-
-            var preventPullRefresh = false;
-            var lastTouchY = 0;
-
-            if (isTouch && options.touchEnabled) {
-              $document.on('touchstart', function (event) {
-                if (event.touches.length !== 1) {
-                  return;
-                }
-                lastTouchY = event.touches[0].clientY;
-                if ($window.pageYOffset === 0) {
-                  preventPullRefresh = true;
-                }
-              });
-
-              $document.on('touchmove', function (event) {
-                var touchY = event.touches[0].clientY;
-                var touchYDelta = touchY - lastTouchY;
-                lastTouchY = touchY;
-                if (preventPullRefresh) {
-                  preventPullRefresh = false;
-                  if (touchYDelta > 0) {
-                    event.preventDefault();
-                  }
-                }
-              });
-
-              hammer = new Hammer(scrollifyEl);
-
-              hammer.get('swipe').set({
-                direction: Hammer.DIRECTION_ALL,
-              });
-
-              hammer.on('swipeup', function (event) {
-                next();
-              });
-
-              hammer.on('swipedown', function (event) {
-                prev();
-              });
-            }
-
-            if (!isTouch) {
-              $element.on('mousewheel', wheelHandler);
-              $element.on('DOMMouseScroll', wheelHandler);
-
-              if (options.container === 'window') {
-                angular.element($window).on('scroll', scroll);
-
-              } else {
-                $element.on('scroll', scroll);
-              }
-            }
-
-            var keyDown = function (event) {
+            var keyDownHandler = function(event) {
               if (event.keyCode === 40 || event.keyCode === 38) {
                 event.preventDefault();
 
@@ -559,19 +488,17 @@
               if (event.keyCode === 9) {
                 // Hack to force redraw after changing focus to off screen element
                 wrapper.style.display = 'none';
-                $timeout(function () {
+                $timeout(function() {
                   wrapper.style.display = 'block';
                 });
               }
             };
 
-            $document.on('keydown', keyDown);
-
-            var debounceResize = debounce(250, function () {
+            var debounceResize = debounce(250, function() {
               preventScroll = false;
             });
 
-            var resize = function () {
+            var resizeHandler = function() {
               preventScroll = true;
 
               debounceResize();
@@ -581,24 +508,114 @@
               scrollToCurrent(0);
             };
 
+            var hammer;
+            var preventPullRefresh = false;
+            var lastTouchY = 0;
             var resizeEvent = 'onorientationchange' in $window ? 'orientationchange' : 'resize';
 
-            angular.element($window).on(resizeEvent, resize);
+            var bindEvents = function() {
+              if (isTouch && options.touchEnabled) {
+                $document.on('touchstart', function(event) {
+                  if (event.touches.length !== 1) {
+                    return;
+                  }
+                  lastTouchY = event.touches[0].clientY;
+                  if ($window.pageYOffset === 0) {
+                    preventPullRefresh = true;
+                  }
+                });
 
-            $scope.$on('$destroy', function () {
-              angular.element($window).off(resizeEvent, resize);
+                $document.on('touchmove', function(event) {
+                  var touchY = event.touches[0].clientY;
+                  var touchYDelta = touchY - lastTouchY;
+                  lastTouchY = touchY;
+                  if (preventPullRefresh) {
+                    preventPullRefresh = false;
+                    if (touchYDelta > 0) {
+                      event.preventDefault();
+                    }
+                  }
+                });
+
+                hammer = new Hammer(scrollifyEl);
+
+                hammer.get('swipe').set({
+                  direction: Hammer.DIRECTION_ALL,
+                });
+
+                hammer.on('swipeup', function(event) {
+                  next();
+                });
+
+                hammer.on('swipedown', function(event) {
+                  prev();
+                });
+              }
+
+              if (!isTouch) {
+                $element.on('mousewheel', wheelHandler);
+                $element.on('DOMMouseScroll', wheelHandler);
+
+                if (options.container === 'window') {
+                  angular.element($window).on('scroll', scrollHandler);
+
+                } else {
+                  $element.on('scroll', scrollHandler);
+                }
+              }
+
+              $document.on('keydown', keyDownHandler);
+
+              angular.element($window).on(resizeEvent, resizeHandler);
+            };
+
+            var unbindEvents = function() {
+              angular.element($window).off(resizeEvent, resizeHandler);
 
               $element.off('mousewheel', wheelHandler);
               $element.off('DOMMouseScroll', wheelHandler);
 
               if (options.container === 'window') {
-                angular.element($window).off('scroll', scroll);
+                angular.element($window).off('scroll', scrollHandler);
 
               } else {
-                $element.off('scroll', scroll);
+                $element.off('scroll', scrollHandler);
               }
 
-              $document.off('keydown', keyDown);
+              $document.off('keydown', keyDownHandler);
+            };
+
+            $scope.$on('$destroy', function() {
+              unbindEvents();
+            });
+
+            var init = function() {
+              buildPanes();
+
+              setContainerHeight();
+
+              currentPane = options.startIndex !== false ? options.startIndex : getCurrentPane();
+
+              $timeout(function() {
+                $scope.$emit('scrollify:init', {
+                  id: options.id,
+                  currentPane: currentPane,
+                });
+
+                moveSlider(0);
+
+                scrollToCurrent(0);
+
+                bindEvents();
+              }, options.initDelay);
+            };
+
+            $scope.$watch(listIdentifier, function(_list) {
+              if (_list !== undefined) {
+                list = _list;
+
+                init();
+              }
             });
 
           };
