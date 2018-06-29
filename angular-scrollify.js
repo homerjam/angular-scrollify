@@ -247,9 +247,7 @@
               $timeout(function() {
                 slider.style[prefixedTransitionDuration] = transitionDuration + 'ms';
 
-                var sliderY = -(currentPane * wrapper.clientHeight);
-
-                slider.style[prefixedTransform] = 'translate(0px, ' + sliderY + 'px)';
+                slider.style[prefixedTransform] = 'translate(0px, ' + ((currentPane / panes.length) * -100) + '%)';
 
                 $timeout.cancel(moveTimeout);
 
