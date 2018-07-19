@@ -550,10 +550,10 @@
                 });
               }
 
-              if (!isTouch) {
-                $element.on('mousewheel', wheelHandler);
-                $element.on('DOMMouseScroll', wheelHandler);
+              $element.on('mousewheel', wheelHandler);
+              $element.on('DOMMouseScroll', wheelHandler);
 
+              if (!isTouch) {
                 if (options.container === 'window') {
                   angular.element($window).on('scroll', scrollHandler);
 
