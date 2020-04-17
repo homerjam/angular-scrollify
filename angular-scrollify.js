@@ -190,7 +190,7 @@
             var prevPane = null;
             var preventScroll = false;
 
-            if (options.fixedPositon) {
+            if (options.fixedPosition) {
               angular
                 .element(container)
                 .addClass('scrollify__container--fixed');
@@ -341,7 +341,7 @@
                   scrollifyEl.scrollTop = scrollY;
                 }
 
-                if (!options.fixedPositon) {
+                if (!options.fixedPosition) {
                   container.style[prefixedTransform] =
                     'translate(0px, ' + Math.round(scrollY) + 'px)';
                 }
@@ -531,7 +531,7 @@
                 scrollY = scrollifyEl.scrollTop;
               }
 
-              if (!options.fixedPositon) {
+              if (!options.fixedPosition) {
                 container.style[prefixedTransform] =
                   'translate(0px, ' + scrollY + 'px)';
               }
