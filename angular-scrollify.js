@@ -248,16 +248,20 @@
               if (list.length === 1) {
                 return 0;
               } else if (options.container === 'window') {
-                return Math.round(
-                  (list.length - 1) *
-                    ($window.scrollY /
-                      (dummy.scrollHeight - $window.innerHeight))
+                return Math.abs(
+                  Math.round(
+                    (list.length - 1) *
+                      ($window.scrollY /
+                        (dummy.scrollHeight - $window.innerHeight))
+                  )
                 );
               } else {
-                return Math.round(
-                  (list.length - 1) *
-                    (scrollifyEl.scrollTop /
-                      (dummy.scrollHeight - scrollifyEl.clientHeight))
+                return Math.abs(
+                  Math.round(
+                    (list.length - 1) *
+                      (scrollifyEl.scrollTop /
+                        (dummy.scrollHeight - scrollifyEl.clientHeight))
+                  )
                 );
               }
             };
